@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
 
     # 从 .env 文件加载
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file="../../.env", env_file_encoding="utf-8")
 
 # 全局唯一配置实例
 settings = Settings()

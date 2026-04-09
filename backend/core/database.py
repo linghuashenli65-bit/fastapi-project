@@ -1,7 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from settings import settings
+
+from backend.core.config import settings
 
 # 拼接数据库地址
 # MySQL：mysql+pymysql://用户:密码@主机:端口/库名
