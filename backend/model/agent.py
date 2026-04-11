@@ -50,72 +50,96 @@ def generate_sql(query: str,model:str="qwen"):
 
 ## 数据库结构（只允许使用以下表的列名，不要使用不存在的列名，不要臆造列名）
 
-### 表 student
-- id (int, 主键, 自增)  # 注意：主键是 id，不是 student_id
-- student_no (varchar(50), 唯一, 学生编号)# 注意：这个是学生学号
-- name (varchar(50), 学生姓名)
-- gender (varchar(10), 性别)
-- age (int, 年龄)
-- birthplace (varchar(100), 籍贯)
-- graduated_school (varchar(100), 毕业院校)
-- major (varchar(100), 专业)
-- enrollment_date (date, 入学时间)
-- graduation_date (date, 毕业时间)
-- education (varchar(50), 学历)
-- consultant_id (int, 顾问编号)
-- class_id (int, 班级ID, 外键关联 class.id)
-- is_deleted (tinyint, 默认0, 逻辑删除标记，0=未删除，1=已删除)
-- created_at (datetime)
-- updated_at (datetime)
-
-### 表 class
-- id (int, 主键, 自增)
-- class_no (varchar(50), 班级编号)
-- class_name (varchar(100), 班级名称)
-- start_date (date, 开课时间)
-- head_teacher (varchar(50), 班主任)
-- course_teacher (varchar(50), 授课老师)
-- created_at (datetime)
-- updated_at (datetime)
-
-### 表 teacher
-- id (int, 主键, 自增)
-- teacher_no (varchar(50), 老师编号)
-- name (varchar(50), 老师姓名)
-- gender (varchar(10), 性别)
-- phone (varchar(20), 电话)
-- created_at (datetime)
-- updated_at (datetime)
-
-### 表 teacher_class (老师带班关系表)
-- id (int, 主键, 自增)
-- teacher_id (int, 老师ID, 外键关联 teacher.id)
-- class_id (int, 班级ID, 外键关联 class.id)
-
-### 表 score
-- id (int, 主键, 自增)
-- student_id (int, 学生ID, 外键关联 student.id)
-- exam_sequence (int, 考核序次)
-- score (decimal(5,2), 成绩)
-- created_at (datetime)
-- updated_at (datetime)
-
-### 表 employment
-- id (int, 主键, 自增)
-- student_id (int, 学生ID, 外键关联 student.id)
-- employment_open_date (date, 就业开放时间)
-- offer_date (date, offer下发时间)
-- company_name (varchar(100), 就业公司名称)
-- salary (int, 薪资, 单位：千元/月)
-- created_at (datetime)
-- updated_at (datetime)
+1. 表 sequence（序号生成辅助表）
+seq_name (varchar(50), 主键, 序列名称, 如 'student_202604')
+current_val (int, 默认0, 当前已使用的最大值)
+2. 表 class（班级信息表）
+id (int, 主键, 自增)
+class_no (varchar(50), 唯一, 班级编号, 格式：YYMMDD+3位序号)
+class_name (varchar(100), 班级名称)
+start_date (date, 开课日期, 用于生成编号的年月日)
+deleted_at (datetime, 软删除时间, 默认 '1900-01-01 00:00:00')
+created_at (datetime, 创建时间, 默认 CURRENT_TIMESTAMP)
+updated_at (datetime, 更新时间, 默认 CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
+3. 表 teacher（老师信息表）
+id (int, 主键, 自增)
+teacher_no (varchar(50), 唯一, 老师编号, 格式：YYMM+5位序号)
+name (varchar(50), 老师姓名)
+gender (char(1), 性别, M-男 F-女)
+phone (varchar(20), 电话)
+title (varchar(50), 职称)
+deleted_at (datetime, 软删除时间, 默认 '1900-01-01 00:00:00')
+created_at (datetime, 创建时间, 默认 CURRENT_TIMESTAMP)
+updated_at (datetime, 更新时间, 默认 CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
+4. 表 teacher_class（老师带班历史表）
+id (int, 主键, 自增)
+teacher_no (varchar(50), 外键, 引用 teacher.teacher_no)
+class_no (varchar(50), 外键, 引用 class.class_no)
+role (enum('head_teacher','course_teacher','assistant'), 老师角色: 班主任/讲师/助教)
+start_date (date, 开始带班日期)
+end_date (date, 结束带班日期, 可为空)
+is_current (tinyint, 默认0, 是否当前带班)
+created_at (datetime, 创建时间, 默认 CURRENT_TIMESTAMP)
+updated_at (datetime, 更新时间, 默认 CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
+5. 表 student（学生基本信息表）
+id (int, 主键, 自增)
+student_no (varchar(50), 唯一, 学号, 格式：YYMM+5位序号)
+name (varchar(50), 学生姓名)
+gender (char(1), 性别, M-男 F-女)
+birth_date (date, 出生日期)
+birthplace (varchar(100), 籍贯)
+graduated_school (varchar(100), 毕业院校)
+major (varchar(100), 专业)
+enrollment_date (date, 入学日期, 用于生成学号年月)
+graduation_date (date, 毕业时间)
+education (tinyint, 学历, 1-高中 2-大专 3-本科 4-硕士 5-博士)
+consultant_no (varchar(50), 顾问编号, 外键引用 teacher.teacher_no)
+deleted_at (datetime, 软删除时间, 默认 '1900-01-01 00:00:00')
+created_at (datetime, 创建时间, 默认 CURRENT_TIMESTAMP)
+updated_at (datetime, 更新时间, 默认 CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
+6. 表 student_class（学生班级归属历史表）
+id (int, 主键, 自增)
+student_no (varchar(50), 外键, 引用 student.student_no)
+class_no (varchar(50), 外键, 引用 class.class_no)
+start_date (date, 进入该班级的日期)
+end_date (date, 离开该班级的日期, 可为空)
+is_current (tinyint, 默认0, 是否当前班级)
+reason (varchar(50), 变动原因: normal/demotion/transfer)
+created_at (datetime, 创建时间, 默认 CURRENT_TIMESTAMP)
+updated_at (datetime, 更新时间, 默认 CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
+7. 表 score（学生考核成绩表）
+id (int, 主键, 自增)
+student_no (varchar(50), 外键, 引用 student.student_no)
+class_no (varchar(50), 外键, 引用 class.class_no)
+start_date (date, 对应 student_class 的进入日期)
+exam_sequence (int, 考核序次)
+exam_date (date, 考试日期)
+score (decimal(5,2), 成绩)
+created_at (datetime, 创建时间, 默认 CURRENT_TIMESTAMP)
+updated_at (datetime, 更新时间, 默认 CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
+8. 表 employment（学生offer与就业信息表）
+id (int, 主键, 自增)
+student_no (varchar(50), 外键, 引用 student.student_no)
+company_name (varchar(100), 公司名称)
+job_title (varchar(100), 职位名称)
+salary (int, 薪资, 单位千元/月)
+offer_date (date, offer下发时间)
+employment_start_date (date, 实际入职时间)
+record_type (enum('offer','employment'), 记录类型)
+is_current (tinyint, 默认0, 是否当前就业, 仅employment类型有效)
+created_at (datetime, 创建时间, 默认 CURRENT_TIMESTAMP)
+updated_at (datetime, 更新时间, 默认 CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
 
 ## 表关系
-- student.class_id = class.id
-- score.student_id = student.id
-- employment.student_id = student.id
-- teacher_class.teacher_id = teacher.id
-- teacher_class.class_id = class.id
+student_class.student_no = student.student_no
+student_class.class_no = class.class_no
+score.student_no = student.student_no
+score.class_no = class.class_no
+score.start_date = student_class.start_date （注：三元组外键）
+employment.student_no = student.student_no
+teacher_class.teacher_no = teacher.teacher_no
+teacher_class.class_no = class.class_no
+student.consultant_no = teacher.teacher_no
 
 ## 生成 SQL 的规则
 1. **仅使用上述列名**：禁止使用不存在的列（如 `company_type`）。所有字段必须来自上述表结构。
@@ -215,7 +239,7 @@ def ai_choose_chart_type(data: list, title: str, model: str = "qwen") -> str:
     return chart_type if chart_type in valid_types else "bar"
 
 def agent_sql(query: str,model:str=""):
-    sql = generate_sql(query,model)
+    sql =generate_sql(query,model)
 
     # 如果大模型失败
     if sql.startswith("ERROR"):
@@ -226,7 +250,7 @@ def agent_sql(query: str,model:str=""):
         return {"code": 400, "msg": "只允许SELECT查询", "sql": sql, "data": []}
 
     try:
-        data = execute_sql(sql)
+        data =execute_sql(sql)
         return {"code": 200, "msg": "success", "sql": sql, "data": data}
     except Exception as e:
         return {"code": 500, "msg": str(e), "sql": sql, "data": []}

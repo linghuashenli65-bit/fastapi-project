@@ -1,5 +1,5 @@
 from backend.crud.sql_service import execute_sql
-from backend.model.agent import split_tasks, generate_sql, ai_choose_chart_type
+from backend.model.agent import split_tasks, generate_sql, ai_choose_chart_type, agent_sql
 
 
 def choose_chart_type(data):
@@ -184,12 +184,11 @@ def build_dashboard(query: str,model:str="qwen"):
         try:
             # 循环分任务生成SQL
             sql = generate_sql(task["query"],model)
-            print(sql)
             if sql.startswith("ERROR"):
                 continue
 
             # 执行SQL
-            data = execute_sql(sql)
+            data = agent_sql(sql)["data"]
             # print(data)
             if not data:
                 print(f"SQL执行无数据: {sql}")

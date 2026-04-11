@@ -1,0 +1,33 @@
+from pydantic import BaseModel, Field, validator
+from datetime import date, datetime
+from typing import Optional
+
+class Teacher(BaseModel):
+    name: str
+    gender: str=None
+    phone: str=None
+    title: str=None
+
+class TeacherInDB(Teacher):
+    id:int
+    teacher_no: int
+    created_at: Optional[datetime]
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+class TeacherCreate(Teacher):
+    pass
+class TeacherUpdate(Teacher):
+    name: Optional[str]=None
+
+class TeacherOut(BaseModel):
+    id: int
+    teacher_no: int
+    name: str
+    gender: str = None
+    phone: str = None
+    title: str = None
+    class Config:
+        from_attributes = True

@@ -1,8 +1,9 @@
 
 import pymysql
-
+from sqlalchemy import text
 from backend.core.config import DB_CONFIG
-from backend.core.database import engine
+from backend.core.database import AsyncSessionLocal,SyncSessionLocal
+
 
 def get_connection():
     return pymysql.connect(
@@ -13,17 +14,11 @@ def get_connection():
         cursorclass=pymysql.cursors.DictCursor,
     )
 
-def execute_sql(sql: str):
-    #数据库连接
-    connection = engine.raw_connection()
-    try:
-        cursor = connection.cursor()
-        # 关键：临时禁用 ONLY_FULL_GROUP_BY 和相关的严格模式
-        cursor.execute("SET SESSION sql_mode = ''")
-        cursor.execute(sql)
-        result = cursor.fetchall()
-        columns = [desc[0] for desc in cursor.description] if cursor.description else []
-        return [dict(zip(columns, row)) for row in result]
-    finally:
-        cursor.close()
-        connection.close()
+
+def execute_sql(sql: str) -> list:
+    """同步执行原生 SQL，返回字典列表"""
+    with SyncSessionLocal() as session:
+        result = session.execute(text(sql))
+        rows = result.fetchall()
+        # 转换为字典列表
+        return [dict(row._mapping) for row in rows]
