@@ -1,9 +1,10 @@
 import requests
-
+import httpx
 from backend.core.config import QWEN_API_KEY, QWEN_URL, DEEPSEEK_API_KEY, DEEPSEEK_URL
+from backend.utils.helpers import clean_ai_response
 
 
-def call_qwen(prompt: str):
+async def call_qwen(prompt: str):
     headers = {
         "Authorization": f"Bearer {QWEN_API_KEY}",
         "Content-Type": "application/json",
@@ -21,22 +22,23 @@ def call_qwen(prompt: str):
             ]
         },
     }
+    async with httpx.AsyncClient(timeout=60.0) as client:
 
-    resp = requests.post(QWEN_URL, json=data, headers=headers)
-    result = resp.json()
-    print("千问返回：", result)
-    try:
-        # 新版（chat格式）
-        if "choices" in result.get("output", {}):
-            return result["output"]["choices"][0]["message"]["content"]
-        # 旧版（text格式）
-        if "text" in result.get("output", {}):
-            return result["output"]["text"]
-        return f"ERROR: 未知返回格式 {result}"
-    except Exception as e:
-        return f"ERROR: {result}"
+        resp = await client.post(QWEN_URL, json=data, headers=headers)
+        result = resp.json()
+        print("千问返回：", result)
+        try:
+            # 新版（chat格式）
+            if "choices" in result.get("output", {}):
+                return clean_ai_response(result["output"]["choices"][0]["message"]["content"])
+            # 旧版（text格式）
+            if "text" in result.get("output", {}):
+                return clean_ai_response(result["output"]["text"])
+            return f"ERROR: 未知返回格式 {result}"
+        except Exception as e:
+            return f"ERROR: {result}"
 
-def call_deepseek(prompt: str) -> str:
+async def call_deepseek(prompt: str) -> str:
     headers = {
         "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
         "Content-Type": "application/json",
@@ -53,10 +55,13 @@ def call_deepseek(prompt: str) -> str:
         ],
         "temperature": 0.7,
     }
-    resp = requests.post(DEEPSEEK_URL, json=data, headers=headers)
-    result = resp.json()
-    print("deepseek返回", result)
-    try:
-        return result["choices"][0]["message"]["content"]
-    except Exception as e:
-        return f"ERROR: DeepSeek 调用失败 - {result}"
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        resp = await client.post(DEEPSEEK_URL, json=data, headers=headers)
+        result = resp.json()
+        print("deepseek返回", result)
+        try:
+            # 直接获取 choices[0].message.content
+            cleaned=clean_ai_response( result["choices"][0]["message"]["content"])
+            return cleaned
+        except (KeyError, IndexError) as e:
+            return f"ERROR: 解析失败 - {result}"

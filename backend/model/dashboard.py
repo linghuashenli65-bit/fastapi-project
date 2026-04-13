@@ -1,4 +1,4 @@
-from backend.crud.sql_service import execute_sql
+from backend.crud.sql_service import execute_sql, convert_decimal
 from backend.model.agent import split_tasks, generate_sql, ai_choose_chart_type, agent_sql
 
 
@@ -174,37 +174,47 @@ def build_chart(data: list, title: str, chart_type: str = "bar") -> dict:
             option["series"] = {"type": "bar", "data": y_series, "name": columns[1]}
 
     return option
-def build_dashboard(query: str,model:str="qwen"):
+async def build_dashboard(query: str,model:str="qwen"):
     #拆分任务为2-4个分任务
-    tasks = split_tasks(query,model)
-
+    tasks = await split_tasks(query,model)
+    if not isinstance(tasks, list):
+        yield {"stage": "error", "message": f"任务分解失败，返回了 {type(tasks)} 类型的数据"}
+        return
+    if not tasks:
+        yield {"stage": "error", "message": "没有有效的分析任务"}
+        return
+    yield {"stage": "split", "percent": 10, "message": f"分解为 {len(tasks)} 个任务"}
     charts = []
-
-    for task in tasks:
+    total = len(tasks)
+    for idx, task in enumerate(tasks):
         try:
             # 循环分任务生成SQL
-            sql = generate_sql(task["query"],model)
+            yield {"stage": "sql", "percent": 10 + (idx / total) * 30, "message": f"生成 SQL：{task['name']}"}
+            sql = await generate_sql(task["query"], model)
             if sql.startswith("ERROR"):
                 continue
 
             # 执行SQL
-            data = agent_sql(sql)["data"]
+            yield {"stage": "execute", "percent": 40 + (idx / total) * 30, "message": f"执行 SQL：{task['name']}"}
+            data =await execute_sql(sql)
             # print(data)
             if not data:
                 print(f"SQL执行无数据: {sql}")
                 continue
-            chart_type = ai_choose_chart_type(data, task["name"], model)
+            #推荐图表类型
+            yield {"stage": "chart_type", "percent": 70 + (idx / total) * 20, "message": f"选择图表类型：{task['name']}"}
+            chart_type =await ai_choose_chart_type(data, task["name"], model)
             # 生成图表
             option = build_chart(data, task["name"], chart_type)
 
             charts.append({
                 "title": task["name"],
-                "sql": sql,
                 "option": option,
-                "chart_type": chart_type  # 可选，调试用
+                "table": {"columns": list(data[0].keys()), "rows": data[:20]}
             })
         except Exception as e:
             # 记录错误并继续下一个任务
             print(f"处理任务 '{task['name']}' 时出错: {e}")
             continue
-    return charts
+    charts = convert_decimal(charts)
+    yield {"stage": "complete", "percent": 100, "message": "分析完成", "charts": charts}

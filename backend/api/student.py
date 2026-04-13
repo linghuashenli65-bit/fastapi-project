@@ -3,13 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.core.database import get_async_db
 from backend.crud.student_crud import  student_crud
 from backend.schemas.student import StudentCreate, StudentUpdate, StudentInDB, StudentOut
-from sqlalchemy import text
-router = APIRouter()
 
-@router.get("/test-async")
-async def test_async(db: AsyncSession = Depends(get_async_db)):
-    result = await db.execute(text("SELECT 1"))
-    return {"result": result.scalar()}
+router = APIRouter()
 
 @router.get("/",response_model=dict,summary="分页获得学生列表，按学生姓名模糊查找（可选）")
 async def get_student(page:int=1,size:int=10,name:str=None,db:AsyncSession=Depends(get_async_db)):

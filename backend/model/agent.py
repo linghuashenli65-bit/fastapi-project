@@ -4,15 +4,14 @@ import re
 
 from ..crud.sql_service import execute_sql
 
+import json
+import re
+from typing import List, Dict, Any
 
-def clean_ai_response(text: str) -> str:
-    """去除 AI 返回内容中的 Markdown 代码块标记"""
-    text = text.strip()
-    # 去除开头的 ```json 或 ``` 以及结尾的 ```
-    text = re.sub(r'^```(?:json)?\s*', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'\s*```$', '', text)
-    return text.strip()
-def split_tasks(query: str,model:str="qwen"):
+from ..utils.helpers import clean_ai_response
+
+
+async def split_tasks(query: str, model: str = "qwen") -> List[Dict[str, Any]]:
     prompt = f"""
     你是数据分析助手，请拆分分析任务：
 
@@ -22,7 +21,7 @@ def split_tasks(query: str,model:str="qwen"):
     1. 返回JSON数组
     2. 每个元素包含 name 和 query
     3. 不要解释
-    4.只输出最重要的2到4个，按重要度排序
+    4. 只输出最重要的2到4个，按重要度排序
 
     示例：
     [
@@ -30,21 +29,47 @@ def split_tasks(query: str,model:str="qwen"):
       {{"name": "人数分布", "query": "统计各班人数"}}
     ]
     """
-    if model == "qwen":
-        result = call_qwen(prompt)
-    elif model == "deepseek":
-        result = call_deepseek(prompt)
-    else :
-        result = call_qwen(prompt)
-    import json
-    cleaned = clean_ai_response(result)
-    print(json.loads(cleaned))
+    if model == "deepseek":
+        raw = await call_deepseek(prompt)
+    else:
+        raw = await call_qwen(prompt)
+
+    # 清洗：去除 Markdown 代码块和多余空白
+    cleaned = raw.strip()
+    cleaned = re.sub(r'^```(?:json)?\s*', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\s*```$', '', cleaned)
+    # 提取第一个 [ 和最后一个 ] 之间的内容（防御性）
+    start = cleaned.find('[')
+    end = cleaned.rfind(']')
+    if start != -1 and end != -1:
+        cleaned = cleaned[start:end + 1]
+
     try:
-        return json.loads(cleaned)
-    except:
+        parsed = json.loads(cleaned)
+    except json.JSONDecodeError as e:
+        print(f"JSON解析失败: {e}\n原始内容: {cleaned}")
         return []
 
-def generate_sql(query: str,model:str="qwen"):
+    # 确保返回的是字典列表
+    if isinstance(parsed, list):
+        result = []
+        for item in parsed:
+            if isinstance(item, dict) and 'name' in item and 'query' in item:
+                result.append(item)
+            else:
+                print(f"跳过无效任务项: {item}")
+        return result
+    elif isinstance(parsed, dict):
+        if 'name' in parsed and 'query' in parsed:
+            return [parsed]
+        else:
+            print(f"字典缺少必要字段: {parsed}")
+            return []
+    else:
+        print(f"解析结果类型异常: {type(parsed)}")
+        return []
+
+async def generate_sql(query: str,model:str="qwen"):
     prompt = f"""
  你是一个专业的SQL生成助手。请根据用户{query}，生成符合 MySQL 语法的 SQL 查询语句。
 
@@ -164,23 +189,33 @@ SQL：`SELECT AVG(salary) AS 平均薪资 FROM employment e JOIN student s ON e.
 现在，请根据用户的问题生成 SQL。
                   """
     if model=="qwen":
-        sql = call_qwen(prompt)
+        raw =await call_qwen(prompt)
     else:
-        sql = call_deepseek(prompt)
-    if sql.startswith("ERROR"):
-        return sql
+        raw =await call_deepseek(prompt)
+    cleaned = clean_ai_response(raw)
+    # 防御：如果 raw 是字典，尝试提取 content（兼容不同返回格式）
+    if isinstance(cleaned, dict):
+        # 尝试从常见结构提取
+        if "choices" in cleaned:
+            cleaned = cleaned["choices"][0]["message"]["content"]
+        elif "content" in cleaned:
+            cleaned = cleaned["content"]
+        elif "text" in cleaned:
+            cleaned = cleaned["text"]
+        else:
+            cleaned = str(cleaned)
+
+    if not isinstance(cleaned, str):
+        return f"ERROR: AI 返回了非字符串类型: {type(cleaned)}"
+
+    if cleaned.startswith("ERROR"):
+        return cleaned
     # 简单清洗
-    sql = sql.strip()
-    sql = sql.replace("```sql", "").replace("```", "").strip()
-    # 去除可能的前后引号
-    if sql.startswith('"') and sql.endswith('"'):
-        sql = sql[1:-1]
-    if sql.startswith("'") and sql.endswith("'"):
-        sql = sql[1:-1]
-    return sql
+    cleaned = clean_ai_response(cleaned)
+    return cleaned
 
 
-def generate_analysis(charts,model='qwen'):
+async def generate_analysis(charts,model='qwen'):
 
     prompt = f"""
     你是数据分析师，请根据以下图表数据生成分析结论：
@@ -192,9 +227,9 @@ def generate_analysis(charts,model='qwen'):
     2. 50字到100字
     """
     if model=="qwen":
-        return call_qwen(prompt)
+        return await call_qwen(prompt)
     else:
-        return call_deepseek(prompt)
+        return await call_deepseek(prompt)
 import json
 def convert_decimal(obj):
     if isinstance(obj, Decimal):
@@ -206,7 +241,7 @@ def convert_decimal(obj):
     else:
         return obj
 
-def ai_choose_chart_type(data: list, title: str, model: str = "qwen") -> str:
+async def ai_choose_chart_type(data: list, title: str, model: str = "qwen") -> str:
     if not data:
         return "bar"
 
@@ -230,16 +265,16 @@ def ai_choose_chart_type(data: list, title: str, model: str = "qwen") -> str:
 请仅输出一个单词，即图表类型（如 bar）。不要输出其他内容。
 """
     if model == "deepseek":
-        resp = call_deepseek(prompt)
+        resp =await call_deepseek(prompt)
     else:
-        resp = call_qwen(prompt)
+        resp =await call_qwen(prompt)
 
     chart_type = resp.strip().lower()
     valid_types = ["bar", "line", "pie", "scatter", "area"]
     return chart_type if chart_type in valid_types else "bar"
 
-def agent_sql(query: str,model:str=""):
-    sql =generate_sql(query,model)
+async def agent_sql(query: str,model:str=""):
+    sql =await generate_sql(query,model)
 
     # 如果大模型失败
     if sql.startswith("ERROR"):

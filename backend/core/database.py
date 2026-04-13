@@ -44,15 +44,3 @@ Base = declarative_base()
 async def get_async_db():
     async with AsyncSessionLocal() as session:
         yield session
-
-# 同步依赖（用于需要使用同步会话的路由）
-# 注意：FastAPI 的依赖可以是同步函数，但该函数会在异步事件循环中运行，
-# 内部的同步数据库操作会阻塞事件循环。推荐两种用法：
-# 1. 只在同步路由中使用（def 而不是 async def）
-# 2. 在异步路由中用 asyncio.to_thread() 包裹
-def get_sync_db():
-    db = SyncSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()

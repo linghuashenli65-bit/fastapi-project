@@ -1,9 +1,9 @@
-
+import aiomysql
 import pymysql
-from sqlalchemy import text
 from backend.core.config import DB_CONFIG
-from backend.core.database import AsyncSessionLocal,SyncSessionLocal
-
+from sqlalchemy import text
+from backend.core.database import async_engine
+from decimal import Decimal
 
 def get_connection():
     return pymysql.connect(
@@ -13,12 +13,21 @@ def get_connection():
         database=DB_CONFIG["database"],
         cursorclass=pymysql.cursors.DictCursor,
     )
-
-
-def execute_sql(sql: str) -> list:
-    """同步执行原生 SQL，返回字典列表"""
-    with SyncSessionLocal() as session:
-        result = session.execute(text(sql))
-        rows = result.fetchall()
-        # 转换为字典列表
-        return [dict(row._mapping) for row in rows]
+def convert_decimal(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    if isinstance(obj, dict):
+        return {k: convert_decimal(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [convert_decimal(i) for i in obj]
+    return obj
+async def execute_sql(sql: str):
+    async with async_engine.connect() as conn:
+        await conn.execute(text("SET SESSION sql_mode = ''"))
+        result = await conn.execute(text(sql))
+        if result.returns_rows:
+            # 关键：将 RowMapping 转换为字典
+            rows = [dict(row) for row in result.mappings()]
+            return convert_decimal(rows)
+        else:
+            return {"affected_rows": result.rowcount}

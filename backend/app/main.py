@@ -5,7 +5,7 @@ from sqlalchemy.sql.functions import user
 from backend.api import agent
 from backend.api import student
 from backend.api import teacher
-app = FastAPI()
+app = FastAPI(title="学生管理系统",version="0.1")
 app.include_router(agent.router, prefix="/agent", tags=["ai模块"])
 app.include_router(student.router, prefix="/student", tags=["学生模块"])
 app.include_router(teacher.router,prefix="/teacher",tags=["教师模块"])
