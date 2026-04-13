@@ -69,7 +69,7 @@ async def split_tasks(query: str, model: str = "qwen") -> List[Dict[str, Any]]:
         print(f"解析结果类型异常: {type(parsed)}")
         return []
 
-async def generate_sql(query: str,model:str="qwen"):
+async def generate_sql(query: str,model:str="qwen", error_feedback: str = ""):
     prompt = f"""
  你是一个专业的SQL生成助手。请根据用户{query}，生成符合 MySQL 语法的 SQL 查询语句。
 
@@ -188,6 +188,11 @@ SQL：`SELECT AVG(salary) AS 平均薪资 FROM employment e JOIN student s ON e.
 
 现在，请根据用户的问题生成 SQL。
                   """
+    if error_feedback:
+        prompt+=f"\n\n注意：之前生成的 SQL 执行时出现以下错误，请修正：\n{error_feedback}\n只输出修正后的 SQL 语句，不要包含其他解释。"
+    else:
+        prompt+="\n只输出 SQL 语句，不要包含额外解释。"
+
     if model=="qwen":
         raw =await call_qwen(prompt)
     else:

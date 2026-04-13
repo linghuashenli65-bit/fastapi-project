@@ -188,19 +188,32 @@ async def build_dashboard(query: str,model:str="qwen",analysis_length: str = "me
     total = len(tasks)
     for idx, task in enumerate(tasks):
         try:
-            # 循环分任务生成SQL
-            yield {"stage": "sql", "percent": 10 + (idx / total) * 30, "message": f"生成 SQL：{task['name']}"}
-            sql = await generate_sql(task["query"], model)
-            if sql.startswith("ERROR"):
+            # 重试参数
+            max_retries = 3
+            data = None
+            error_msg=""
+            for attempt in range(max_retries + 1):
+                try:
+                    if attempt == 0:
+                        sql = await generate_sql(task["query"], model)
+                    else:
+                        yield {"stage": "sql_retry", "percent": 40 + (idx/total)*30,
+                               "message": f"SQL 执行出错，正在修正（第 {attempt} 次重试）"}
+                        sql = await generate_sql(task["query"], model, error_feedback=error_msg)
+                    data = await execute_sql(sql)
+                    break  # 成功则跳出循环
+                except Exception as e:
+                    error_msg = str(e)
+                    print(f"任务 '{task['name']}' 失败 (尝试 {attempt + 1}/{max_retries + 1}): {error_msg}")
+                    if attempt == max_retries:
+
+                        data = None
+                        break
+            if not data:
+                yield {"stage": "sql_retry", "percent": 40 + (idx / total) * 30,
+                       "message": f"任务 '{task['name']}'超过最大重试次数或执行失败，将跳过这个任务"}
                 continue
 
-            # 执行SQL
-            yield {"stage": "execute", "percent": 40 + (idx / total) * 30, "message": f"执行 SQL：{task['name']}"}
-            data =await execute_sql(sql)
-            # print(data)
-            if not data:
-                print(f"SQL执行无数据: {sql}")
-                continue
             #推荐图表类型
             yield {"stage": "chart_type", "percent": 70 + (idx / total) * 20, "message": f"选择图表类型：{task['name']}"}
             chart_type =await ai_choose_chart_type(data, task["name"], model)
@@ -217,7 +230,7 @@ async def build_dashboard(query: str,model:str="qwen",analysis_length: str = "me
             print(f"处理任务 '{task['name']}' 时出错: {e}")
             continue
     charts = convert_decimal(charts)
-    yield {"stage": "complete", "percent": 100, "message": "正在生成图表总结", "charts": charts}
+    yield {"stage": "complete", "percent": 90, "message": "正在生成图表总结", "charts": charts}
     # 在所有任务完成后，生成分析结论
     analysis =await generate_analysis(charts, model,analysis_length)  # 需要传入 model 参数
     yield {"stage": "complete", "percent": 100, "message": "分析完成", "analysis": analysis}
