@@ -1,5 +1,5 @@
 from backend.crud.sql_service import execute_sql, convert_decimal
-from backend.model.agent import split_tasks, generate_sql, ai_choose_chart_type, agent_sql
+from backend.model.agent import split_tasks, generate_sql, ai_choose_chart_type, agent_sql, generate_analysis
 
 
 def choose_chart_type(data):
@@ -174,7 +174,7 @@ def build_chart(data: list, title: str, chart_type: str = "bar") -> dict:
             option["series"] = {"type": "bar", "data": y_series, "name": columns[1]}
 
     return option
-async def build_dashboard(query: str,model:str="qwen"):
+async def build_dashboard(query: str,model:str="qwen",analysis_length: str = "medium"):
     #拆分任务为2-4个分任务
     tasks = await split_tasks(query,model)
     if not isinstance(tasks, list):
@@ -217,4 +217,7 @@ async def build_dashboard(query: str,model:str="qwen"):
             print(f"处理任务 '{task['name']}' 时出错: {e}")
             continue
     charts = convert_decimal(charts)
-    yield {"stage": "complete", "percent": 100, "message": "分析完成", "charts": charts}
+    yield {"stage": "complete", "percent": 100, "message": "正在生成图表总结", "charts": charts}
+    # 在所有任务完成后，生成分析结论
+    analysis =await generate_analysis(charts, model,analysis_length)  # 需要传入 model 参数
+    yield {"stage": "complete", "percent": 100, "message": "分析完成", "analysis": analysis}

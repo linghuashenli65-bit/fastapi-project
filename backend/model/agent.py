@@ -215,21 +215,56 @@ SQL：`SELECT AVG(salary) AS 平均薪资 FROM employment e JOIN student s ON e.
     return cleaned
 
 
-async def generate_analysis(charts,model='qwen'):
+async def generate_analysis(charts: list, model: str = "qwen", length: str = "medium") -> str:
+    if not charts:
+        return "无有效图表数据，无法生成分析。"
 
+    # 构建图表概要（仅包含标题和类型，避免过长）
+    chart_summary = []
+    for c in charts:
+        title = c.get("title", "图表")
+        chart_type = c.get("chart_type", "bar")
+        chart_summary.append(f"图表「{title}」类型为 {chart_type}")
+    summary_text = "\n".join(chart_summary)
+
+    # 长度对应的提示词
+    length_prompts = {
+        "short": "请生成一段约50-100字的简洁分析结论，概括核心发现，不要超过100字。",
+        "medium": "请生成一段约300左右字的分析，指出主要趋势、对比和异常点。",
+        "long": """
+        ##总体概览
+核心结论先行：用一两句话概括所有图表共同指向的最重要发现。例如：“综合图1-3，过去三个季度用户增长主要来自Z世代，但付费转化率未同步提升。”
+主题与范围：说明这些图表共同探讨的主题，并提及覆盖的时间、类别或维度。
+##关键指标与趋势
+识别主要模式：指出上升、下降、波动、稳定或周期性等总体趋势。例如：“整体呈季节性波动，Q4为全年高峰。”
+突出极值：明确标注最大值、最小值、转折点或异常值。例如：“图2显示，5月销售额达到峰值12万，2月为谷底3万。”
+计算关键变化：如有必要，给出增长率、占比、差距等量化信息。例如：“从图3可知，A产品市场份额比B产品高15%。”
+##比较与关联
+横向对比：比较不同图表间（或图表内不同系列）的差异。例如：“图4显示线上渠道增速（+30%）远超线下（+5%）。”
+发现关联：指出不同图表间的相关性或因果线索。例如：“对比图5（广告投入）和图6（网站流量），两者在2月后呈现同步增长，暗示广告效果显著。”
+识别矛盾：如果有图表结论看似冲突，要明确指出并尝试解释。例如：“尽管整体满意度提升（图7），但复购率却下降（图8），需关注忠诚度问题。”
+##异常与特例
+标注离群点：明确指出不符合整体规律的数据点或时间段，并分析可能原因（如促销、系统故障、政策变化）。
+补充局限性：简要提及数据缺失、样本量小、统计方法局限等可能影响结论的因素。
+##结论与建议
+重申核心洞察：基于以上分析，再次总结最关键的1-2个业务或事实启示。
+提出行动方向：根据数据启示，给出可操作的建议或下一步需要研究的问题。例如：“建议在Q3加大对Z世代的精准营销，并重新评估付费转化漏斗。”
+总字数在五百字以上不要超过一千字
+"""
+    }
     prompt = f"""
-    你是数据分析师，请根据以下图表数据生成分析结论：
+你是一名数据分析专家。根据以下图表信息，{length_prompts.get(length, length_prompts['medium'])}
 
-    {charts}
+图表信息：
+{summary_text}
 
-    要求：
-    1. 用中文
-    2. 50字到100字
-    """
-    if model=="qwen":
-        return await call_qwen(prompt)
+只输出分析文本，不要包含其他内容。
+"""
+    if model == "deepseek":
+        raw = await call_deepseek(prompt)
     else:
-        return await call_deepseek(prompt)
+        raw = await call_qwen(prompt)
+    return raw.strip()
 import json
 def convert_decimal(obj):
     if isinstance(obj, Decimal):
