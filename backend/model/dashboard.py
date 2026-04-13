@@ -174,7 +174,7 @@ def build_chart(data: list, title: str, chart_type: str = "bar") -> dict:
             option["series"] = {"type": "bar", "data": y_series, "name": columns[1]}
 
     return option
-async def build_dashboard(query: str,model:str="qwen",analysis_length: str = "medium"):
+async def   build_dashboard(query: str,model:str="qwen",analysis_length: str = "medium"):
     #拆分任务为2-4个分任务
     tasks = await split_tasks(query,model)
     if not isinstance(tasks, list):

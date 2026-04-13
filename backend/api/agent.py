@@ -1,30 +1,23 @@
 import json
-from typing import Optional
 
 import uvicorn
-from fastapi import FastAPI, APIRouter, HTTPException, Depends
-import sys,os
+from fastapi import  APIRouter, HTTPException
 
-from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from backend.core.database import get_async_db
 from backend.crud.sql_service import execute_sql
-from backend.model.agent import agent_sql, dispatch_agent, generate_sql, generate_analysis
-from backend.model.dashboard import build_option, build_dashboard
-from backend.schemas.agent import SQLRequest, QueryRequest
+from backend.model.agent import dispatch_agent, generate_sql, agent_sql
+from backend.model.dashboard import  build_dashboard
+from backend.schemas.agent import SQLRequest, QueryRequest,DashboardRequest
 
 router = APIRouter()
 # 允许跨域
-
-
 # -------------------------------
 # 1. Agent SQL 普通查询接口
 # -------------------------------
 @router.post("/sql",summary="ai查询接口")
-def agent_sql_api(req: QueryRequest, model:str= ""):
+async def agent_sql_api(req: QueryRequest):
     try:
-        return agent_sql(req.query, model)
+        data = await agent_sql(req.query,req.model)
+        return data
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 # -------------------------------
@@ -58,10 +51,7 @@ def execute_sql_api(req: SQLRequest):
 from fastapi.responses import StreamingResponse
 
 
-class DashboardRequest(BaseModel):
-    query: str
-    model: str="qwen"
-    analysis_length: Optional[str] = "medium"
+
 # -------------------------------
 # 5. ai分析接口
 # -------------------------------

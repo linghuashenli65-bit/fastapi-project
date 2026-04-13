@@ -1,10 +1,7 @@
 from .llm import call_qwen, call_deepseek
 from decimal import Decimal
-import re
 
 from ..crud.sql_service import execute_sql
-
-import json
 import re
 from typing import List, Dict, Any
 
@@ -104,6 +101,7 @@ role (enum('head_teacher','course_teacher','assistant'), 老师角色: 班主任
 start_date (date, 开始带班日期)
 end_date (date, 结束带班日期, 可为空)
 is_current (tinyint, 默认0, 是否当前带班)
+deleted_at (datetime, 软删除时间, 默认 '1900-01-01 00:00:00')
 created_at (datetime, 创建时间, 默认 CURRENT_TIMESTAMP)
 updated_at (datetime, 更新时间, 默认 CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
 5. 表 student（学生基本信息表）
@@ -130,6 +128,7 @@ start_date (date, 进入该班级的日期)
 end_date (date, 离开该班级的日期, 可为空)
 is_current (tinyint, 默认0, 是否当前班级)
 reason (varchar(50), 变动原因: normal/demotion/transfer)
+deleted_at (datetime, 软删除时间, 默认 '1900-01-01 00:00:00')
 created_at (datetime, 创建时间, 默认 CURRENT_TIMESTAMP)
 updated_at (datetime, 更新时间, 默认 CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
 7. 表 score（学生考核成绩表）
@@ -140,6 +139,7 @@ start_date (date, 对应 student_class 的进入日期)
 exam_sequence (int, 考核序次)
 exam_date (date, 考试日期)
 score (decimal(5,2), 成绩)
+deleted_at (datetime, 软删除时间, 默认 '1900-01-01 00:00:00')
 created_at (datetime, 创建时间, 默认 CURRENT_TIMESTAMP)
 updated_at (datetime, 更新时间, 默认 CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
 8. 表 employment（学生offer与就业信息表）
@@ -152,6 +152,7 @@ offer_date (date, offer下发时间)
 employment_start_date (date, 实际入职时间)
 record_type (enum('offer','employment'), 记录类型)
 is_current (tinyint, 默认0, 是否当前就业, 仅employment类型有效)
+deleted_at (datetime, 软删除时间, 默认 '1900-01-01 00:00:00')
 created_at (datetime, 创建时间, 默认 CURRENT_TIMESTAMP)
 updated_at (datetime, 更新时间, 默认 CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
 
@@ -325,13 +326,13 @@ async def agent_sql(query: str,model:str=""):
         return {"code": 400, "msg": "只允许SELECT查询", "sql": sql, "data": []}
 
     try:
-        data =execute_sql(sql)
+        data =await execute_sql(sql)
         return {"code": 200, "msg": "success", "sql": sql, "data": data}
     except Exception as e:
         return {"code": 500, "msg": str(e), "sql": sql, "data": []}
 
 
-def dispatch_agent(query: str,model):
+def dispatch_agent(query: str,model="qwen"):
     result = agent_sql(query,model)
 
     return {"code": 200, "action": "sql_query", "result": result}
