@@ -12,7 +12,7 @@ class ClassInDB(BaseModel):
     class Config:
         from_attributes = True
 
-class ClassCreate(ClassInDB):
+class ClassCreate(Class):
     pass
 
 class ClassUpdate(Class):

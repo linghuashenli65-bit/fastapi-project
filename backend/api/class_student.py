@@ -39,7 +39,7 @@ async def update_class(
 async def delete_class(class_id:int,db:AsyncSession=Depends(get_async_db)):
     return await class_crud.remove(db,class_id)
 
-@router.get("/{class_no}",response_model=list,summary="查看班级内部学生信息与教师信息")
+@router.get("/{class_no}/",response_model=list,summary="查看班级内部学生信息与教师信息")
 async def get_class_all(class_no:str,db:AsyncSession=Depends(get_async_db)):
     lis=await class_crud.get_student(class_no,db)
     if not lis:
