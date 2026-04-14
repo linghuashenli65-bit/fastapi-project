@@ -11,9 +11,6 @@ class Teacher(BaseModel):
 class TeacherInDB(Teacher):
     id:int
     teacher_no: int
-    created_at: Optional[datetime]
-    updated_at: Optional[datetime]
-
     class Config:
         from_attributes = True
 
