@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field,field_serializer
-from datetime import date, datetime
+from pydantic import BaseModel
+from datetime import date
 from typing import Optional
 
 class Class(BaseModel):

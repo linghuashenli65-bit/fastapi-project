@@ -1,17 +1,17 @@
-from types import new_class
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.core.database import get_async_db
 from backend.crud.class_crud import class_crud
-from backend.schemas.Class import ClassInDB, ClassUpdate, ClassCreate
+from backend.schemas.Class import  ClassUpdate, ClassCreate
 
 router = APIRouter()
 
-@router.get("/",response_model=list,summary="分页获得班级列表，按班级姓名模糊查找（可选）")
+@router.get("/",response_model=dict,summary="分页获得班级列表，按班级姓名模糊查找（可选）")
 async def get_class(db:AsyncSession=Depends(get_async_db),skip: int = 0, limit: int = 100):
+    count=await class_crud.count(db)
     lst=await class_crud.get_all(db,skip=skip,limit=limit)
-    return lst
+    return {"count":count,"data":lst}
 
 @router.post("/",response_model=ClassCreate,summary="创建新班级")
 async def create_class(

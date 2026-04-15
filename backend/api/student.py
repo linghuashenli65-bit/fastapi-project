@@ -27,19 +27,19 @@ async def get_student(page:int=1,size:int=10,name:str=None,db:AsyncSession=Depen
 async def create_student(student_in:StudentCreate,db:AsyncSession=Depends(get_async_db)):
     return await student_crud.create(db,obj_in=student_in)
 
-@router.put("/{student_no}",response_model=StudentInDB,summary="修改学生信息")
-async def update_student(student_no:str,student_in:StudentUpdate,db:AsyncSession=Depends(get_async_db)):
-    student = await student_crud.get_by_student_no(db, student_no)
+@router.put("/{id}",response_model=StudentInDB,summary="修改学生信息")
+async def update_student(id:str,student_in:StudentUpdate,db:AsyncSession=Depends(get_async_db)):
+    student = await student_crud.get(db, id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     return await student_crud.update(db, db_obj=student, obj_in=student_in)
 
-@router.delete("/{student_no}")
-async def delete_student(student_no:str,db:AsyncSession=Depends(get_async_db)):
-    student = await student_crud.get_by_student_no(db, student_no)
+@router.delete("/{id}")
+async def delete_student(id:str,db:AsyncSession=Depends(get_async_db)):
+    student = await student_crud.get_by_student_no(db, id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
-    await student_crud.delete(db, db_obj=student)
+    await student_crud.remove(db, db_obj=student,id=id)
     return {"message":"删除成功"}
 
 @router.get("/{student_no}", response_model=StudentInDB)

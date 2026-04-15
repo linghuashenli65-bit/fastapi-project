@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from datetime import datetime
 from backend.core.database import Base
@@ -7,8 +7,8 @@ from backend.core.database import Base
 class Teacher_Class(Base):
     __tablename__ = 'teacher_class'
     id = Column(Integer, primary_key=True)
-    teacher_no = Column(Integer, unique=True)
-    class_no = Column(Integer, unique=True)
+    teacher_no = Column(Integer,ForeignKey("teacher.teacher_no",ondelete="SET NULL"), unique=True)
+    class_no = Column(Integer,ForeignKey("class.class_no",ondelete="SET NULL"), unique=True)
     role=Column(String(100),comment="教师职称")
     start_date=Column(DateTime,nullable=False,default=func.now())
     end_date=Column(DateTime,default=func.now())

@@ -1,5 +1,5 @@
 
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime,ForeignKey
 from sqlalchemy.sql import func
 from datetime import datetime
 from backend.core.database import Base
@@ -7,8 +7,8 @@ from backend.core.database import Base
 class Student_Class(Base):
     __tablename__ = 'student_class'
     id = Column(Integer, primary_key=True)
-    student_no=Column(Integer,nullable=False,unique=True)
-    class_no=Column(Integer,nullable=False,unique=True)
+    student_no=Column(Integer,ForeignKey("student.student_no",ondelete="SET NULL"),nullable=False,unique=True)
+    class_no=Column(Integer,ForeignKey("class.class_no",ondelete="SET NULL"),nullable=False,unique=True)
     start_date=Column(DateTime,nullable=False,default=func.now())
     end_date=Column(DateTime,default=func.now())
     is_current=Column(Integer,default=1,comment="是否当前班级")
