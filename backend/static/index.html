@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>学生管理系统 · 前端控制台</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+</head>
+
+<body>
+  <div class="app-layout">
+    <!-- 侧边栏导航 -->
+    <aside class="sidebar">
+      <h2>📚 管理系统</h2>
+      <nav>
+        <button class="nav-btn" data-module="student">👨‍🎓 学生管理</button>
+        <button class="nav-btn" data-module="teacher">👩‍🏫 教师管理</button>
+        <button class="nav-btn" data-module="class">🏫 班级管理</button>
+        <button class="nav-btn" data-module="score">📊 成绩管理</button>
+        <button class="nav-btn" data-module="employment">💼 就业管理</button>
+        <button class="nav-btn" data-module="ai">🤖 AI 助手</button>
+      </nav>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+      <div id="app-content">
+        <!-- 动态渲染的模块内容会显示在这里 -->
+        <div class="welcome-card">
+          <h2>欢迎使用学生管理系统</h2>
+          <p>请从左侧菜单选择一个功能模块</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 全局消息容器 -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- 引入 JavaScript 模块 -->
+  <script type="module" src="js/app.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test</title></head>
+<body>
+    <div id="app-content">初始内容</div>
+    <script type="module">
+        import('./js/modules/student.js').then(module => {
+            const container = document.getElementById('app-content');
+            module.render(container);
+        }).catch(e => console.error(e));
+    </script>
+</body>
+</html>
