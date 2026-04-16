@@ -5,6 +5,20 @@ QWEN_URL = (
 DEEPSEEK_API_KEY = "sk-8d9aa2531dcf4490a84b705b89f93fff"
 DEEPSEEK_URL="https://api.deepseek.com/v1/chat/completions"
 
+# API配置（统一格式）
+API_CONFIG = {
+    "qwen": {
+        "url": QWEN_URL,
+        "api_key": QWEN_API_KEY,
+        "model": "qwen-max"
+    },
+    "deepseek": {
+        "url": DEEPSEEK_URL,
+        "api_key": DEEPSEEK_API_KEY,
+        "model": "deepseek-chat"
+    }
+}
+
 # MySQL配置
 DB_CONFIG = {
     "host": "localhost",

@@ -1,11 +1,11 @@
 from .llm import call_qwen, call_deepseek
 from decimal import Decimal
 
-from ..crud.sql_service import execute_sql
+from backend.repositories.sql_service import execute_sql
 import re
 from typing import List, Dict, Any
 
-from ..utils.helpers import clean_ai_response
+from backend.utils.helpers import clean_ai_response
 
 
 async def split_tasks(query: str, model: str = "qwen") -> List[Dict[str, Any]]:
