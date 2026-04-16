@@ -22,12 +22,18 @@ async def get_student(page:int=1,size:int=10,name:str=None,db:AsyncSession=Depen
     # 将 ORM 对象列表转换为 Pydantic schema 列表
     result["data"] = [StudentOut.model_validate(item) for item in result["data"]]
     return result
+@router.get("/{id}",response_model=StudentOut)
+async def get_student(id:int,db:AsyncSession=Depends(get_async_db)):
+    student = await student_crud.get(db, id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    return student
 
-@router.post("/",response_model=StudentInDB,summary="创建学生")
+@router.post("/",response_model=StudentCreate,summary="创建学生")
 async def create_student(student_in:StudentCreate,db:AsyncSession=Depends(get_async_db)):
     return await student_crud.create(db,obj_in=student_in)
 
-@router.put("/{id}",response_model=StudentInDB,summary="修改学生信息")
+@router.put("/{id}",response_model=StudentUpdate,summary="修改学生信息")
 async def update_student(id:str,student_in:StudentUpdate,db:AsyncSession=Depends(get_async_db)):
     student = await student_crud.get(db, id)
     if not student:

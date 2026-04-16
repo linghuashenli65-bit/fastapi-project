@@ -53,7 +53,7 @@ class Class_crud(BaseCRUD[Class,ClassCreate,ClassUpdate]):
 
     @staticmethod
     async def get_student( class_no: int, db: AsyncSession):
-        # 1. 查询班级是否存在（注意：这里使用异步 select）
+        # 1. 查询班级是否存在（这里使用异步 select）
         stmt_cls = select(Class).where(Class.class_no == class_no, Class.deleted_at == '1900-01-01 00:00:00')
         result = await db.execute(stmt_cls)
         cls = result.scalar_one_or_none()

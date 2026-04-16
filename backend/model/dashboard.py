@@ -174,9 +174,10 @@ def build_chart(data: list, title: str, chart_type: str = "bar") -> dict:
             option["series"] = {"type": "bar", "data": y_series, "name": columns[1]}
 
     return option
-async def   build_dashboard(query: str,model:str="qwen",analysis_length: str = "medium"):
-    #拆分任务为2-4个分任务
-    tasks = await split_tasks(query,model)
+async def build_dashboard(query: str, model: str = "qwen", analysis_length: str = "medium"):
+    # 1. 任务分解 (0% -> 10%)
+    yield {"stage": "split", "percent": 0, "message": "正在分析问题并分解任务..."}
+    tasks = await split_tasks(query, model)
     if not isinstance(tasks, list):
         yield {"stage": "error", "message": f"任务分解失败，返回了 {type(tasks)} 类型的数据"}
         return
@@ -184,40 +185,89 @@ async def   build_dashboard(query: str,model:str="qwen",analysis_length: str = "
         yield {"stage": "error", "message": "没有有效的分析任务"}
         return
     yield {"stage": "split", "percent": 10, "message": f"分解为 {len(tasks)} 个任务"}
-    charts = []
+
     total = len(tasks)
+    charts = []
+
+    # 每个任务占用的进度区间 (10% -> 70%，共 60%)
+    task_progress_range = 60.0
+    base_progress = 10.0
+
     for idx, task in enumerate(tasks):
+        # 计算当前任务的起始和结束进度
+        task_start = base_progress + (idx / total) * task_progress_range
+        task_end = base_progress + ((idx + 1) / total) * task_progress_range
+        # 任务内部分为：生成SQL(20%)、执行SQL(30%)、选择图表类型(20%)、构建图表(30%)
+        sub_stages = [0.2, 0.3, 0.2, 0.3]  # 子阶段权重
+
         try:
-            # 重试参数
+            # 生成 SQL（重试机制）
             max_retries = 3
+            sql = None
             data = None
-            error_msg=""
+            error_msg = ""
+
             for attempt in range(max_retries + 1):
                 try:
+                    # 更新消息：生成SQL
+                    sub_progress = task_start + sub_stages[0] * (task_end - task_start)
                     if attempt == 0:
+                        yield {
+                            "stage": "sql_generate",
+                            "percent": round(sub_progress, 1),
+                            "message": f"正在为任务「{task['name']}」生成SQL语句"
+                        }
                         sql = await generate_sql(task["query"], model)
                     else:
-                        yield {"stage": "sql_retry", "percent": 40 + (idx/total)*30,
-                               "message": f"SQL 执行出错，正在修正（第 {attempt} 次重试）"}
+                        sub_progress = task_start + (sub_stages[0] + 0.1) * (task_end - task_start)  # 重试略微前进
+                        yield {
+                            "stage": "sql_retry",
+                            "percent": round(sub_progress, 1),
+                            "message": f"SQL生成失败，正在重试（第 {attempt} 次）..."
+                        }
                         sql = await generate_sql(task["query"], model, error_feedback=error_msg)
+
+                    # 执行 SQL
+                    sub_progress = task_start + (sub_stages[0] + sub_stages[1]) * (task_end - task_start)
+                    yield {
+                        "stage": "sql_execute",
+                        "percent": round(sub_progress, 1),
+                        "message": f"正在执行SQL：{task['name']}"
+                    }
                     data = await execute_sql(sql)
-                    break  # 成功则跳出循环
+                    break  # 成功则跳出重试循环
+
                 except Exception as e:
                     error_msg = str(e)
                     print(f"任务 '{task['name']}' 失败 (尝试 {attempt + 1}/{max_retries + 1}): {error_msg}")
                     if attempt == max_retries:
-
                         data = None
                         break
+
             if not data:
-                yield {"stage": "sql_retry", "percent": 40 + (idx / total) * 30,
-                       "message": f"任务 '{task['name']}'超过最大重试次数或执行失败，将跳过这个任务"}
+                yield {
+                    "stage": "error",
+                    "percent": round(task_end, 1),
+                    "message": f"任务 '{task['name']}' 执行失败，跳过该任务"
+                }
                 continue
 
-            #推荐图表类型
-            yield {"stage": "chart_type", "percent": 70 + (idx / total) * 20, "message": f"选择图表类型：{task['name']}"}
-            chart_type =await ai_choose_chart_type(data, task["name"], model)
-            # 生成图表
+            # 选择图表类型
+            sub_progress = task_start + (sub_stages[0] + sub_stages[1] + sub_stages[2]) * (task_end - task_start)
+            yield {
+                "stage": "chart_type",
+                "percent": round(sub_progress, 1),
+                "message": f"正在为「{task['name']}」选择最佳图表类型"
+            }
+            chart_type = await ai_choose_chart_type(data, task["name"], model)
+
+            # 构建图表
+            sub_progress = task_end  # 最后一个子阶段结束正好到达 task_end
+            yield {
+                "stage": "build_chart",
+                "percent": round(sub_progress, 1),
+                "message": f"正在生成图表：{task['name']}"
+            }
             option = build_chart(data, task["name"], chart_type)
 
             charts.append({
@@ -225,12 +275,22 @@ async def   build_dashboard(query: str,model:str="qwen",analysis_length: str = "
                 "option": option,
                 "table": {"columns": list(data[0].keys()), "rows": data[:20]}
             })
+
         except Exception as e:
-            # 记录错误并继续下一个任务
             print(f"处理任务 '{task['name']}' 时出错: {e}")
+            yield {
+                "stage": "error",
+                "percent": round(task_end, 1),
+                "message": f"任务「{task['name']}」处理失败：{str(e)}"
+            }
             continue
+
+    # 2. 图表后处理 (70% -> 85%)
+    yield {"stage": "postprocess", "percent": 70, "message": "正在整理图表数据..."}
     charts = convert_decimal(charts)
-    yield {"stage": "complete", "percent": 90, "message": "正在生成图表总结", "charts": charts}
-    # 在所有任务完成后，生成分析结论
-    analysis =await generate_analysis(charts, model,analysis_length)  # 需要传入 model 参数
-    yield {"stage": "complete", "percent": 100, "message": "分析完成", "analysis": analysis}
+    yield {"stage": "postprocess", "percent": 85, "message": f"共生成 {len(charts)} 个图表"}
+
+    # 3. 生成分析结论 (85% -> 100%)
+    yield {"stage": "analysis", "percent": 85, "message": "正在生成综合分析报告..."}
+    analysis = await generate_analysis(charts, model, analysis_length)
+    yield {"stage": "complete", "percent": 100, "message": "分析完成", "analysis": analysis, "charts": charts}

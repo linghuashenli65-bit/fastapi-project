@@ -10,7 +10,7 @@ async def call_qwen(prompt: str):
         "Content-Type": "application/json",
     }
     data = {
-        "model": "qwen-plus",
+        "model": "qwen-max",
         "input": {
             "messages": [
                 {"role": "system", "content": "你是SQL生成助手"},

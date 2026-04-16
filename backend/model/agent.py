@@ -264,7 +264,7 @@ async def generate_analysis(charts: list, model: str = "qwen", length: str = "me
 图表信息：
 {summary_text}
 
-只输出分析文本，不要包含其他内容。
+只输出markdown格式的分析文本，注意分段前空格，标记关键点，使用markdown样式，不要包含其他内容。
 """
     if model == "deepseek":
         raw = await call_deepseek(prompt)
@@ -302,7 +302,7 @@ async def ai_choose_chart_type(data: list, title: str, model: str = "qwen") -> s
 - pie: 饼图，适合展示占比
 - scatter: 散点图，适合展示相关性
 - area: 面积图，适合累积趋势
-
+不要只使用柱状图，要积极使用其他的图表类型
 请仅输出一个单词，即图表类型（如 bar）。不要输出其他内容。
 """
     if model == "deepseek":

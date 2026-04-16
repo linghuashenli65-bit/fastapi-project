@@ -18,7 +18,7 @@ class Student(Base):
     major=Column(String(100),comment="专业")
     enrollment_date = Column(Date, nullable=False)
     graduation_date = Column(Date)
-    education = Column(SmallInteger)  # 学历：1-高中 2-大专 3-本科 4-硕士 5-博士
+    education = Column(SmallInteger,comment="学历")  # 学历：1-高中 2-大专 3-本科 4-硕士 5-博士
     consultant_no = Column(String(50), ForeignKey("teacher.teacher_no", ondelete="SET NULL"))
     deleted_at = Column(DateTime, nullable=False, default=datetime(1900, 1, 1, 0, 0, 0))
     created_at = Column(DateTime, server_default=func.now())
