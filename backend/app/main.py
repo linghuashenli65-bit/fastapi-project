@@ -1,29 +1,63 @@
+from contextlib import asynccontextmanager
+from pathlib import Path
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import ValidationError
 
 from backend.api import agent
-from backend.api import student
-from backend.api import teacher
 from backend.api import class_student
 from backend.api import employment
 from backend.api import score
-from backend.core.logger import setup_logger, get_logger
+from backend.api import student
+from backend.api import teacher
+from backend.core.config import settings
 from backend.core.exceptions import (
-    base_api_exception_handler,
+    BaseAPIException,
+    general_exception_handler,
     http_exception_handler,
     validation_exception_handler,
-    general_exception_handler,
-    BaseAPIException,
+    base_api_exception_handler,
 )
+from backend.core.logger import setup_logger, get_logger
 from backend.middlewares.logging_middleware import LoggingMiddleware
-from pydantic import ValidationError
 
 # 初始化日志系统
 logger = setup_logger(log_level="INFO", app_name="student_management")
 app_logger = get_logger("app")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """应用生命周期管理"""
+    # 启动事件
+    frontend_api_base = settings.FRONTEND_API_BASE
+
+    config_file_path = Path(__file__).parent.parent / "static" / "js" / "config.js"
+    config_content = f"""// API 基础地址（自动生成，请勿手动修改）
+export const API_BASE = '{frontend_api_base}';
+
+// 默认分页参数
+export const DEFAULT_PAGE = 1;
+export const DEFAULT_SIZE = 10;
+"""
+    config_file_path.write_text(config_content, encoding="utf-8")
+    app_logger.info(f"前端配置文件已生成: API_BASE = {frontend_api_base}")
+
+    app_logger.info("=" * 50)
+    app_logger.info("学生管理系统启动中...")
+    app_logger.info("版本: 1.0.0")
+    app_logger.info(f"API 文档: http://{settings.BACKEND_HOST}:{settings.BACKEND_PORT}/docs")
+    app_logger.info("=" * 50)
+
+    yield  # 应用运行中
+
+    # 关闭事件
+    app_logger.info("学生管理系统已停止")
+
 
 # 创建 FastAPI 应用
 app = FastAPI(
@@ -32,7 +66,17 @@ app = FastAPI(
     description="基于 FastAPI 的学生信息管理系统，集成了 AI 智能分析功能",
     docs_url="/docs",
     redoc_url="/redoc",
-    openapi_url="/openapi.json"
+    openapi_url="/openapi.json",
+    lifespan=lifespan
+)
+
+# 注册CORS中间件（必须在其他中间件之前）
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
+    allow_methods=settings.CORS_ALLOW_METHODS,
+    allow_headers=settings.CORS_ALLOW_HEADERS,
 )
 
 # 注册异常处理器
@@ -75,27 +119,11 @@ async def health_check():
     }
 
 
-@app.on_event("startup")
-async def startup_event():
-    """应用启动事件"""
-    app_logger.info("=" * 50)
-    app_logger.info("学生管理系统启动中...")
-    app_logger.info("版本: 1.0.0")
-    app_logger.info("API 文档: http://127.0.0.1:8888/docs")
-    app_logger.info("=" * 50)
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """应用关闭事件"""
-    app_logger.info("学生管理系统已停止")
-
-
 if __name__ == '__main__':
     uvicorn.run(
         app,
-        host="127.0.0.1",
-        port=8888,
+        host=settings.BACKEND_HOST,
+        port=settings.BACKEND_PORT,
         log_level="info",
         access_log=False  # 禁用 uvicorn 的访问日志，使用自定义的日志中间件
     )

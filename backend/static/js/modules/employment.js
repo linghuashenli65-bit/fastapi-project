@@ -138,30 +138,19 @@ function renderPagination(total) {
     pageDiv.innerHTML = '';
     return;
   }
-  let html = `<span>共 ${total} 条</span> `;
-  html += `<button ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">上一页</button> `;
-
-  // 显示页码
-  const startPage = Math.max(1, currentPage - 2);
-  const endPage = Math.min(totalPages, currentPage + 2);
-
-  for (let i = startPage; i <= endPage; i++) {
-    if (i === currentPage) {
-      html += `<button class="active">${i}</button> `;
-    } else {
-      html += `<button onclick="changePage(${i})">${i}</button> `;
-    }
+  let btns = '';
+  for (let i = 1; i <= totalPages; i++) {
+    const activeClass = i === currentPage ? 'active' : '';
+    btns += `<button class="btn btn-secondary page-btn ${activeClass}" data-page="${i}">${i}</button>`;
   }
-
-  html += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">下一页</button>`;
-  pageDiv.innerHTML = html;
+  pageDiv.innerHTML = btns;
+  document.querySelectorAll('.page-btn').forEach(btn => {
+    btn.onclick = () => {
+      currentPage = parseInt(btn.dataset.page);
+      fetchEmployments();
+    };
+  });
 }
-
-// 全局函数供HTML中的onclick调用
-window.changePage = (page) => {
-  currentPage = page;
-  fetchEmployments();
-};
 
 function showAddModal() {
   const modal = createModal(`
@@ -263,21 +252,20 @@ async function showEditModal(empData) {
 }
 
 async function deleteEmployment(id) {
-  if (!confirm('确定删除这条就业记录吗？')) {
-    return;
-  }
-  try {
-    await del(`/employment/${id}`);
-    showToast('删除成功', 'success');
-    await fetchEmployments();
-    // 如果当前页无数据且不是第一页，则回退
-    const container = document.getElementById('employment-list');
-    if (container.innerHTML.includes('暂无就业记录') && currentPage > 1) {
-      currentPage--;
+  if (confirm('确定删除这条就业记录吗？')) {
+    try {
+      await del(`/employment/${id}`);
+      showToast('删除成功', 'success');
       await fetchEmployments();
+      // 如果刷新后列表为空且 currentPage > 1，则跳转到上一页
+      const container = document.getElementById('employment-list');
+      if (container.innerHTML.includes('暂无就业记录') && currentPage > 1) {
+        currentPage--;
+        await fetchEmployments();
+      }
+    } catch (err) {
+      showToast('删除失败', 'error');
     }
-  } catch (err) {
-    showToast('删除失败: ' + err.message, 'error');
   }
 }
 
@@ -285,7 +273,7 @@ function formatSalary(salary) {
   if (salary === null || salary === undefined || salary === '') {
     return '-';
   }
-  return `¥${Number(salary).toLocaleString()}`;
+  return `${Number(salary).toLocaleString()}k/月`;
 }
 
 function escapeHtml(str) {

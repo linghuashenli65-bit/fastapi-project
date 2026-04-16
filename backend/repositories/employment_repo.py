@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from backend.repositories.base import BaseCRUD
-from backend.models.employment import Employment
+from backend.model.employment import Employment
 from backend.models.student import Student
 from backend.schemas.employment import EmploymentCreate, EmploymentUpdate
 

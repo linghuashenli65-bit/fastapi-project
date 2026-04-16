@@ -1,16 +1,16 @@
 import aiomysql
 import pymysql
-from backend.core.config import DB_CONFIG
+from backend.core.config import settings
 from sqlalchemy import text
 from backend.core.database import async_engine
 from decimal import Decimal
 
 def get_connection():
     return pymysql.connect(
-        host=DB_CONFIG["host"],
-        user=DB_CONFIG["user"],
-        password=DB_CONFIG["password"],
-        database=DB_CONFIG["database"],
+        host=settings.DB_HOST,
+        user=settings.DB_USER,
+        password=settings.DB_PASSWORD,
+        database=settings.DB_NAME,
         cursorclass=pymysql.cursors.DictCursor,
     )
 def convert_decimal(obj):

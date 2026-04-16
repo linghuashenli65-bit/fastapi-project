@@ -4,7 +4,6 @@ from backend.crud.base import BaseCRUD
 from backend.model.employment import Employment
 from backend.schemas.employment import EmploymentCreate, EmploymentUpdate
 from sqlalchemy import select, func, and_
-from backend.model.employment import Employment
 from backend.model.student import Student
 
 class Employment_crud(BaseCRUD[Employment,EmploymentCreate,EmploymentUpdate]):

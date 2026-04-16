@@ -1,12 +1,12 @@
 import requests
 import httpx
-from backend.core.config import QWEN_API_KEY, QWEN_URL, DEEPSEEK_API_KEY, DEEPSEEK_URL
+from backend.core.config import QWEN_URL, DEEPSEEK_URL, API_CONFIG
 from backend.utils.helpers import clean_ai_response
 
 
 async def call_qwen(prompt: str):
     headers = {
-        "Authorization": f"Bearer {QWEN_API_KEY}",
+        "Authorization": f"Bearer {API_CONFIG['qwen']['api_key']}",
         "Content-Type": "application/json",
     }
     data = {
@@ -40,7 +40,7 @@ async def call_qwen(prompt: str):
 
 async def call_deepseek(prompt: str) -> str:
     headers = {
-        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+        "Authorization": f"Bearer {API_CONFIG['deepseek']['api_key']}",
         "Content-Type": "application/json",
     }
     data = {

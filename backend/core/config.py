@@ -1,33 +1,14 @@
-QWEN_API_KEY = "sk-15c2dda65e8145159ac4b13e8955c1b2"
+# API URL配置（非敏感信息）
 QWEN_URL = (
     "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
 )
-DEEPSEEK_API_KEY = "sk-8d9aa2531dcf4490a84b705b89f93fff"
-DEEPSEEK_URL="https://api.deepseek.com/v1/chat/completions"
-
-# API配置（统一格式）
-API_CONFIG = {
-    "qwen": {
-        "url": QWEN_URL,
-        "api_key": QWEN_API_KEY,
-        "model": "qwen-max"
-    },
-    "deepseek": {
-        "url": DEEPSEEK_URL,
-        "api_key": DEEPSEEK_API_KEY,
-        "model": "deepseek-chat"
-    }
-}
-
-# MySQL配置
-DB_CONFIG = {
-    "host": "localhost",
-    "user": "root",
-    "password": "8312460",
-    "database": "student_management_system",
-}
+DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
+from pathlib import Path
 from pydantic_settings import BaseSettings
 from pydantic import Field
+
+# 获取项目根目录（backend/core/config.py -> backend/ -> 项目根目录）
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 
 class Settings(BaseSettings):
@@ -41,7 +22,7 @@ class Settings(BaseSettings):
     DB_HOST: str = Field(default="localhost")
     DB_PORT: int = Field(default=3306)
     DB_USER: str = Field(default="root")
-    DB_PASSWORD: str = Field(default="8312460")
+    DB_PASSWORD: str = Field(default="")
     DB_NAME: str = Field(default="student_management_system")
 
     # 日志配置
@@ -50,9 +31,34 @@ class Settings(BaseSettings):
     LOG_FORMAT: str = Field(default="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     # JWT 配置
-    secret_key: str = Field(default="your-secret-key-change-in-production")
+    SECRET_KEY: str = Field(default="")
     algorithm: str = Field(default="HS256")
     access_token_expire_minutes: int = Field(default=30)
+
+    # 大模型API配置
+    QWEN_API_KEY: str = Field(default="")
+    DEEPSEEK_API_KEY: str = Field(default="")
+
+    # 前端配置
+    FRONTEND_API_BASE: str = Field(default="http://localhost:8000")
+
+    # 认证白名单（无需登录即可访问的接口路径）
+    AUTH_WHITELIST: list = Field(default_factory=lambda: [
+        "/",  # 首页
+        "/docs",  # 接口文档
+        "/redoc",
+        "/openapi.json",
+        "/user/login",  # 登录
+        "/user/register",  # 注册
+        "/user/",  # 查询
+        "/static/login.html"  # 登录页面
+    ])
+
+    # CORS配置
+    CORS_ORIGINS: list = Field(default_factory=lambda: ["*"])
+    CORS_ALLOW_CREDENTIALS: bool = Field(default=True)
+    CORS_ALLOW_METHODS: list = Field(default_factory=lambda: ["*"])
+    CORS_ALLOW_HEADERS: list = Field(default_factory=lambda: ["*"])
 
     # 生成数据库 URL
     @property
@@ -60,10 +66,25 @@ class Settings(BaseSettings):
         return f"mysql+asyncmy://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
     class Config:
-        env_file = ".env"  # 从项目根目录的 .env 文件读取
+        # 使用项目根目录的 .env 文件
+        env_file = PROJECT_ROOT / ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
         extra = "ignore"  # 忽略额外的环境变量
 
 
 settings = Settings()
+
+# API配置（统一格式）
+API_CONFIG = {
+    "qwen": {
+        "url": QWEN_URL,
+        "api_key": settings.QWEN_API_KEY,
+        "model": "qwen-max"
+    },
+    "deepseek": {
+        "url": DEEPSEEK_URL,
+        "api_key": settings.DEEPSEEK_API_KEY,
+        "model": "deepseek-chat"
+    }
+}

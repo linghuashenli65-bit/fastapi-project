@@ -2,13 +2,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import sessionmaker, Session, declarative_base
 
+from backend.core.config import settings
+
 # ---------- 同步部分 ----------
 # 使用 pymysql 驱动（同步）
-SYNC_DATABASE_URL = "mysql+pymysql://root:8312460@localhost:3306/student_management_system"
+SYNC_DATABASE_URL = settings.DATABASE_URL.replace("mysql+asyncmy", "mysql+pymysql")
 
 sync_engine = create_engine(
     SYNC_DATABASE_URL,
-    echo=True,               # 开发时可开启，生产请关闭
+    echo=False,               # 开发时可开启，生产请关闭
     pool_pre_ping=True,      # 连接池健康检查
 )
 
@@ -20,12 +22,12 @@ SyncSessionLocal = sessionmaker(
 )
 
 # ---------- 异步部分 ----------
-# 使用 aiomysql 驱动（异步）
-ASYNC_DATABASE_URL = "mysql+aiomysql://root:8312460@localhost:3306/student_management_system"
+# 使用 asyncmy 驱动（异步）
+ASYNC_DATABASE_URL = settings.DATABASE_URL
 
 async_engine = create_async_engine(
     ASYNC_DATABASE_URL,
-    echo=True,
+    echo=False,
     pool_pre_ping=True,
 )
 

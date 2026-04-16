@@ -2,7 +2,7 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.repositories.employment_repo import employment_repo
 from backend.schemas.employment import EmploymentCreate, EmploymentUpdate, EmploymentOutDB
-from backend.models.employment import Employment
+from backend.model.employment import Employment
 
 
 class EmploymentService:
