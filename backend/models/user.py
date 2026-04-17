@@ -16,7 +16,7 @@ class User(SQLAlchemyBaseUserTable[int], Base):
     """
     用户表模型
     """
-    __tablename__ = "user"
+    __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(length=320), unique=True, index=True, nullable=False)

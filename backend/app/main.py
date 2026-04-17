@@ -15,6 +15,7 @@ from backend.api import employment
 from backend.api import score
 from backend.api import student
 from backend.api import teacher
+from backend.api import users as user_admin
 from backend.core.config import settings
 from backend.core.exceptions import (
     BaseAPIException,
@@ -97,6 +98,7 @@ app.include_router(teacher.router, prefix="/teacher", tags=["教师模块"])
 app.include_router(class_student.router, prefix="/class", tags=["班级模块"])
 app.include_router(employment.router, prefix="/employment", tags=["就业模块"])
 app.include_router(score.router, prefix="/score", tags=["成绩模块"])
+app.include_router(user_admin.router, tags=["用户管理"])
 
 # 获取静态文件目录的绝对路径（相对于 backend/app/main.py）
 static_dir = Path(__file__).parent.parent / "static"
@@ -105,10 +107,10 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 @app.get("/", tags=["根路径"])
 async def root():
-    """根路径，返回静态页面"""
+    """根路径，返回登录页面"""
     from fastapi.responses import FileResponse
-    index_file = static_dir / "index.html"
-    return FileResponse(str(index_file))
+    login_file = static_dir / "login.html"
+    return FileResponse(str(login_file))
 
 
 @app.get("/health", tags=["健康检查"])

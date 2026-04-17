@@ -56,6 +56,14 @@ body {
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
 }
 
+.nav-admin {
+  background: rgba(239, 68, 68, 0.2) !important;
+}
+
+.nav-admin:hover {
+  background: #dc2626 !important;
+}
+
 /* 主内容区 */
 .main-content {
   flex: 1;
@@ -290,6 +298,44 @@ body {
   margin-bottom: 0.5rem;
 }
 
+/* 状态徽章 */
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* 角色徽章 */
+.role-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.role-badge.superuser {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.role-badge.user {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
 .ai-analysis-text p {
   margin-bottom: 0.8rem;
 }
@@ -430,4 +476,41 @@ body {
 .status-previous {
   color: #64748b;
   font-weight: 500;
+}
+
+/* 用户区域样式 */
+.user-section {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+}
+
+.user-name {
+  color: #ecf0f1;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.logout-btn {
+  background: rgba(239, 68, 68, 0.8);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: rgba(239, 68, 68, 1);
 }

@@ -3,21 +3,13 @@
 """
 from fastapi import APIRouter
 
-from fastapi_users import FastAPIUsers
-
 from backend.core.auth import (
-    UserManager,
+    fastapi_users,
     UserRead,
     UserCreate,
     UserUpdate,
     auth_backend,
-    get_user_manager,
-    get_user_db,
 )
-from backend.models.user import User
-
-# 创建 FastAPIUsers 实例
-fastapi_users = FastAPIUsers(get_user_manager, [auth_backend])
 
 # 创建路由
 auth_router = APIRouter()

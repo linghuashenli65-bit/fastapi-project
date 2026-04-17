@@ -4,7 +4,7 @@ FastAPI-Users 认证配置
 from typing import AsyncGenerator, Optional
 
 from fastapi import Depends, Request
-from fastapi_users import BaseUserManager, IntegerIDMixin, schemas
+from fastapi_users import BaseUserManager, IntegerIDMixin, schemas, FastAPIUsers
 from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
@@ -104,3 +104,25 @@ async def get_user_manager(user_db=Depends(get_user_db)):
     获取用户管理器
     """
     yield UserManager(user_db)
+
+
+# ==================== 用户认证依赖 ====================
+# 创建 FastAPIUsers 实例（必须在 auth.py 之前）
+fastapi_users = FastAPIUsers(get_user_manager, [auth_backend])
+
+
+async def get_current_active_user(
+    user: User = Depends(fastapi_users.current_user(active=True))
+) -> User:
+    return user
+
+
+async def get_current_active_superuser(
+    user: User = Depends(fastapi_users.current_user(active=True, superuser=True))
+) -> User:
+    return user
+
+
+# 别名
+current_active_user = Depends(get_current_active_user)
+current_active_superuser = Depends(get_current_active_superuser)
