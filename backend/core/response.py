@@ -116,14 +116,6 @@ class DetailResponse(BaseModel):
     data: Optional[Any] = Field(default=None, description="详情数据")
 
 
-class BatchResponse(BaseModel):
-    """批量操作响应模型"""
-    
-    code: int = Field(default=200, description="状态码")
-    msg: str = Field(default="success", description="响应消息")
-    data: Optional[BatchOperationData] = Field(default=None, description="批量操作数据")
-
-
 class BatchOperationData(BaseModel):
     """批量操作数据"""
     
@@ -131,6 +123,14 @@ class BatchOperationData(BaseModel):
     failed_count: int = Field(description="失败数量")
     failed_items: List[Any] = Field(default_factory=list, description="失败项列表")
     errors: List[str] = Field(default_factory=list, description="错误信息列表")
+
+
+class BatchResponse(BaseModel):
+    """批量操作响应模型"""
+    
+    code: int = Field(default=200, description="状态码")
+    msg: str = Field(default="success", description="响应消息")
+    data: Optional[BatchOperationData] = Field(default=None, description="批量操作数据")
 
 
 class DeleteResponse(BaseModel):

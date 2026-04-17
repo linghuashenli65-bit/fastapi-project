@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 
 from backend.api import agent
+from backend.api import auth
 from backend.api import class_student
 from backend.api import employment
 from backend.api import score
@@ -89,6 +90,7 @@ app.add_exception_handler(Exception, general_exception_handler)
 app.add_middleware(LoggingMiddleware)
 
 # 注册路由
+app.include_router(auth.auth_router, tags=["认证模块"])
 app.include_router(agent.router, prefix="/agent", tags=["AI模块"])
 app.include_router(student.router, prefix="/student", tags=["学生模块"])
 app.include_router(teacher.router, prefix="/teacher", tags=["教师模块"])

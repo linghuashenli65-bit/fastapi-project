@@ -20,15 +20,6 @@ export async function render(container) {
             </div>
             <div id="pagination" class="pagination"></div>
         </div>
-        <div class="card">
-            <h3>🔍 按学号查询详情</h3>
-            <div class="form-group">
-                <label>学号</label>
-                <input type="text" id="query-student-no" placeholder="例如 230900001">
-                <button id="query-by-no-btn" class="btn btn-primary">查询</button>
-            </div>
-            <div id="student-detail"></div>
-        </div>
     `;
 
     await fetchStudents();
@@ -39,7 +30,6 @@ export async function render(container) {
         fetchStudents();
     };
     document.getElementById('add-student-btn').onclick = showAddModal;
-    document.getElementById('query-by-no-btn').onclick = queryStudentByNo;
 }
 
 async function fetchStudents() {

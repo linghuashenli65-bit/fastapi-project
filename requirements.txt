@@ -1,34 +1,40 @@
 # FastAPI
-fastapi==0.104.1
+fastapi==0.136.0
 uvicorn[standard]==0.24.0
 gunicorn==21.2.0
 
 # Database
-sqlalchemy==2.0.23
+sqlalchemy==2.0.30
 asyncmy==0.2.9
 pymysql==1.1.0
 aiomysql==0.2.0
 
 # Validation
-pydantic==2.5.0
+pydantic==2.13.1
 pydantic-settings==2.1.0
-email-validator==2.1.0
+email-validator==2.1.2
 
 # HTTP Client
 httpx==0.25.2
-aiohttp==3.9.1
+aiohttp==3.9.5
 
 # Utilities
-python-multipart==0.0.6
+python-multipart==0.0.9
 python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
+# passlib replaced by pwdlib
+pwdlib[argon2,bcrypt]==0.2.0
 python-dotenv==1.0.0
+makefun==1.16.0
+typing-inspection>=0.4.2
+annotated-doc==0.0.4
 
 # Logging
 loguru==0.7.2
 
-# CORS
-python-cors==1.0.0
+# User Authentication
+fastapi-users==13.0.0
+fastapi-users-db-sqlalchemy==7.0.0
+pyjwt[crypto]==2.8.0
 
 # Testing
 pytest==7.4.3

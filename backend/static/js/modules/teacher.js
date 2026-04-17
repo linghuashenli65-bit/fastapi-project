@@ -21,15 +21,6 @@ export async function render(container) {
             </div>
             <div id="pagination" class="pagination"></div>
         </div>
-        <div class="card">
-            <h3>🔍 按教师编号查询</h3>
-            <div class="form-group">
-                <label>教师编号</label>
-                <input type="text" id="query-teacher-no" placeholder="例如 T001">
-                <button id="query-by-no-btn" class="btn btn-primary">查询</button>
-            </div>
-            <div id="teacher-detail"></div>
-        </div>
     `;
 
   await fetchTeachers();
@@ -40,7 +31,6 @@ export async function render(container) {
     fetchTeachers();
   };
   document.getElementById('add-teacher-btn').onclick = showAddModal;
-  document.getElementById('query-by-no-btn').onclick = queryTeacherByNo;
 }
 
 async function fetchTeachers() {
@@ -215,26 +205,6 @@ async function deleteTeacher(id) {
   }
 }
 
-async function queryTeacherByNo() {
-  const teacherNo = document.getElementById('query-teacher-no').value.trim();
-  if (!teacherNo) return showToast('请输入教师编号');
-  try {
-    const data = await get(`/teacher/${teacherNo}/`);
-    const detailDiv = document.getElementById('teacher-detail');
-    detailDiv.innerHTML = `
-            <div class="card" style="margin-top:16px">
-                <p><strong>ID：</strong>${data.id}</p>
-                <p><strong>编号：</strong>${data.teacher_no}</p>
-                <p><strong>姓名：</strong>${data.name}</p>
-                <p><strong>性别：</strong>${data.gender === 'M' ? '男' : (data.gender === 'F' ? '女' : '')}</p>
-                <p><strong>电话：</strong>${data.phone || ''}</p>
-                <p><strong>职称：</strong>${data.title || ''}</p>
-            </div>
-        `;
-  } catch (err) {
-    document.getElementById('teacher-detail').innerHTML = '<p style="color:red">未找到教师</p>';
-  }
-}
 
 function escapeHtml(str) {
   if (str === undefined || str === null) return '';
