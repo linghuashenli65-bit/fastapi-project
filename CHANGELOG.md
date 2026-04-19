@@ -2,6 +2,46 @@
 
 所有重要的项目变更都将记录在此文件中。
 
+## [1.2.0] - 2026-04-19
+
+### 新增 (Added)
+- ✨ 统一 API 响应格式 `UnifiedResponse` (`core/response.py`)
+  - 标准化响应结构：`{status, messages, datas, pagination}`
+  - `status`: 1=成功, 0=失败
+  - `datas`: 数据列表（单条记录也包裹在列表中）
+  - `pagination`: 分页信息（count, page, page_size, total_pages）
+  - `UnifiedResponse.success()` 和 `UnifiedResponse.error()` 工厂方法
+
+### 变更 (Changed)
+- 🔄 所有业务模块 API 返回值改用 `UnifiedResponse`
+  - 学生模块 (`api/student.py`)
+  - 教师模块 (`api/teacher.py`)
+  - 班级模块 (`api/class_student.py`)
+  - 成绩模块 (`api/score.py`)
+  - 就业模块 (`api/employment.py`)
+  - 用户管理模块 (`api/users.py`)
+  - AI 模块 (`api/agent.py`)
+- 🔄 统一异常处理器返回 `UnifiedResponse` 格式
+  - `base_api_exception_handler`
+  - `http_exception_handler`
+  - `validation_exception_handler`
+  - `pydantic_validation_exception_handler`
+  - `general_exception_handler`
+- 🔄 前端 `api.js` 自动解包统一响应
+  - 检测 `status` 字段自动识别统一格式
+  - 成功时返回 `{datas, pagination, messages}`
+  - 失败时抛出 `Error(messages)`
+  - 非统一格式（如登录接口）直接返回原始数据
+- 🔄 前端所有模块适配新数据格式
+  - `data.datas` 替代 `data.data` / `data.items`
+  - `data.pagination.count` 替代 `data.count` / `data.total`
+  - 单条记录使用 `result.datas[0]`
+
+### 弃用 (Deprecated)
+- ⚠️ 旧版 `ResponseBuilder` 及相关响应模型保留但不再推荐使用
+
+---
+
 ## [1.1.0] - 2026-04-16
 
 ### 新增 (Added)
@@ -144,19 +184,27 @@
 
 ## 开发计划 (Planned)
 
-### [1.1.0] - 计划中
-- [ ] 添加用户认证和授权（JWT）
-- [ ] 添加数据导入导出功能
+### [1.1.0] - 已完成 ✅
+- [x] 添加用户认证和授权（JWT）
+- [x] 添加数据导入导出功能
 - [ ] 添加数据统计报表
 - [ ] 添加消息通知功能
 - [ ] 添加数据备份功能
 
-### [1.2.0] - 计划中
+### [1.2.0] - 已完成 ✅
+- [x] 统一 API 响应格式（UnifiedResponse）
+- [x] 前端适配统一响应格式
 - [ ] 添加单元测试
 - [ ] 添加集成测试
-- [ ] 添加 API 性能监控
-- [ ] 添加日志系统
-- [ ] 添加缓存层（Redis）
+
+### [1.3.0] - 计划中
+- [ ] 引入 Redis 缓存机制
+  - [ ] 缓存各业务模块列表数据（学生、教师、班级、成绩、就业）
+  - [ ] 缓存 AI 查询分析结果
+  - [ ] AI 模块添加语义缓存（基于向量相似度匹配相似问题，复用历史回答）
+  - [ ] 缓存失效策略（数据变更时自动清除相关缓存）
+  - [ ] 缓存预热与过期时间配置
+  - [ ] 添加缓存命中/未命中监控指标
 
 ### [2.0.0] - 未来计划
 - [ ] 重构为微服务架构

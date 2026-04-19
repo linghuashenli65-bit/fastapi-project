@@ -43,18 +43,9 @@ async function fetchClasses() {
       name: currentName
     });
     const data = await get(`/class/?${params.toString()}`);
-    // 兼容后端返回格式 { count, data }
-    let classes = [];
-    let total = 0;
-    if (Array.isArray(data)) {
-      classes = data;
-      total = data.length;
-    } else if (data.data && Array.isArray(data.data)) {
-      classes = data.data;
-      total = data.count || data.total || classes.length;
-    } else {
-      throw new Error('后端返回格式错误');
-    }
+    // 统一响应格式 { datas, pagination }
+    let classes = data.datas || [];
+    let total = data.pagination ? data.pagination.count : classes.length;
     classesCache = classes;
     renderClassList(classes);
     renderPagination(total);
@@ -155,7 +146,8 @@ window.changePage = (page) => {
 
 async function showClassMembers(classNo) {
   try {
-    const members = await get(`/class/${classNo}/`);
+    const result = await get(`/class/${classNo}/`);
+    const members = result.datas || result || [];
     if (!members || !members.length) {
       showToast('该班级暂无成员信息', 'info');
       return;

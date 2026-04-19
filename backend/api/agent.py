@@ -7,10 +7,11 @@ from backend.repositories.sql_service import execute_sql
 from backend.models.agent import dispatch_agent, generate_sql, agent_sql
 from backend.models.dashboard import build_dashboard
 from backend.schemas.agent import SQLRequest, QueryRequest, DashboardRequest
+from backend.core.response import UnifiedResponse
 from fastapi.responses import StreamingResponse
 
 router = APIRouter()
-# 允许跨域
+
 # -------------------------------
 # 1. Agent SQL 普通查询接口
 # -------------------------------
@@ -18,16 +19,17 @@ router = APIRouter()
 async def agent_sql_api(req: QueryRequest):
     try:
         data = await agent_sql(req.query, req.model)
-        return data
+        return UnifiedResponse.success(datas=[data], messages="查询成功")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return UnifiedResponse.error(messages=str(e))
 
 # -------------------------------
 # 2. Agent调度
 # -------------------------------
 @router.post("/dispatch", summary="ai调度接口（测试）")
 def dispatch_api(req: QueryRequest):
-    return dispatch_agent(req.query)
+    data = dispatch_agent(req.query)
+    return UnifiedResponse.success(datas=[data], messages="调度成功")
 
 
 # -------------------------------
@@ -36,7 +38,7 @@ def dispatch_api(req: QueryRequest):
 @router.post("/generate", summary="sql生成接口（测试）")
 def generate_sql_api(req: QueryRequest):
     sql = generate_sql(req.query)
-    return {"code": 200, "sql": sql}
+    return UnifiedResponse.success(datas=[{"sql": sql}], messages="生成成功")
 
 
 # -------------------------------
@@ -46,9 +48,9 @@ def generate_sql_api(req: QueryRequest):
 def execute_sql_api(req: SQLRequest):
     try:
         data = execute_sql(req.sql)
-        return {"code": 200, "data": data}
+        return UnifiedResponse.success(datas=[data], messages="执行成功")
     except Exception as e:
-        return {"code": 500, "msg": str(e)}
+        return UnifiedResponse.error(messages=str(e))
 
 
 

@@ -11,6 +11,78 @@ from pydantic import BaseModel, Field
 T = TypeVar('T')
 
 
+# ==================== 新版统一响应格式 ====================
+
+class UnifiedResponse(BaseModel, Generic[T]):
+    """
+    统一响应模型（新版）
+    
+    成功响应格式:
+    {
+        "status": 1,
+        "messages": "操作成功",
+        "datas": [{...}, {...}],
+        "pagination": {
+            "count": 100,
+            "page": 1,
+            "page_size": 10,
+            "total_pages": 10
+        }
+    }
+    
+    失败响应格式:
+    {
+        "status": 0,
+        "messages": "错误信息",
+        "datas": null
+    }
+    """
+    
+    status: int = Field(description="状态：1=成功, 0=失败")
+    messages: str = Field(description="提示信息")
+    datas: Optional[T] = Field(default=None, description="数据列表")
+    pagination: Optional[dict] = Field(default=None, description="分页信息")
+    
+    @classmethod
+    def success(
+        cls,
+        datas: Any = None,
+        messages: str = "操作成功",
+        count: int = None,
+        page: int = None,
+        page_size: int = None,
+    ) -> "UnifiedResponse":
+        """
+        构建成功响应
+        
+        Args:
+            datas: 数据（列表或单条数据放列表中）
+            messages: 提示信息
+            count: 总记录数（分页时传入）
+            page: 当前页码（分页时传入）
+            page_size: 每页大小（分页时传入）
+        """
+        pagination = None
+        if count is not None and page is not None and page_size is not None:
+            total_pages = (count + page_size - 1) // page_size if page_size > 0 else 0
+            pagination = {
+                "count": count,
+                "page": page,
+                "page_size": page_size,
+                "total_pages": total_pages,
+            }
+        return cls(status=1, messages=messages, datas=datas, pagination=pagination)
+    
+    @classmethod
+    def error(
+        cls,
+        messages: str = "操作失败",
+        datas: Any = None,
+    ) -> "UnifiedResponse":
+        """构建失败响应"""
+        return cls(status=0, messages=messages, datas=datas)
+
+
 class ResponseModel(BaseModel, Generic[T]):
     """
     统一响应模型
@@ -472,6 +544,9 @@ def not_found(msg="资源不存在"):
 
 
 __all__ = [
+    # 新版统一响应
+    "UnifiedResponse",
+    # 旧版响应模型（保留兼容）
     "ResponseModel",
     "SuccessResponse",
     "ErrorResponse",

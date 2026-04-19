@@ -40,8 +40,10 @@ async function fetchStudents() {
             name: currentName
         });
         const data = await get(`/student/?${params.toString()}`);
-        renderStudentTable(data.data || []);
-        renderPagination(data.count);
+        const students = data.datas || [];
+        const total = data.pagination ? data.pagination.count : (data.datas || []).length;
+        renderStudentTable(students);
+        renderPagination(total);
     } catch (err) {
         showToast('获取学生列表失败', 'error');
     }
@@ -174,7 +176,8 @@ function showAddModal() {
 async function showEditModal(id) {
     try {
         // 调用后端接口获取学生详情
-        const student = await get(`/student/${id}`);
+        const result = await get(`/student/${id}`);
+        const student = (result.datas && result.datas[0]) || {};
         // 构建表单
         const formHtml = `
             <form id="edit-student-form">
@@ -251,7 +254,7 @@ async function getTotalCount() {
     try {
         const params = new URLSearchParams({ page: 1, size: 1, name: currentName });
         const data = await get(`/student/?${params.toString()}`);
-        return data.count || 0;
+        return data.pagination ? data.pagination.count : 0;
     } catch {
         return 0;
     }
@@ -261,7 +264,8 @@ async function queryStudentByNo() {
     const studentNo = document.getElementById('query-student-no').value.trim();
     if (!studentNo) return showToast('请输入学号');
     try {
-        const data = await get(`/student/${studentNo}`);
+        const result = await get(`/student/${studentNo}`);
+        const data = (result.datas && result.datas[0]) || {};
         const detailDiv = document.getElementById('student-detail');
         detailDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
     } catch (err) {

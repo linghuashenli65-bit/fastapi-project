@@ -202,6 +202,44 @@ uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
 
 ## API 文档
 
+### 统一响应格式
+
+所有业务接口均采用统一的 `UnifiedResponse` 响应格式：
+
+**成功响应：**
+```json
+{
+  "status": 1,
+  "messages": "操作成功",
+  "datas": [...],
+  "pagination": {
+    "count": 100,
+    "page": 1,
+    "page_size": 10,
+    "total_pages": 10
+  }
+}
+```
+
+**失败响应：**
+```json
+{
+  "status": 0,
+  "messages": "错误信息",
+  "datas": null,
+  "pagination": null
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| status | int | 状态码：1=成功，0=失败 |
+| messages | string | 提示信息 |
+| datas | array\|null | 数据列表（单条记录也放在列表中） |
+| pagination | object\|null | 分页信息（仅分页接口返回） |
+
+> 注意：认证接口（`/auth/jwt/login` 等）返回原始格式，不走统一响应。
+
 ### 核心接口
 
 #### 认证模块
@@ -223,38 +261,44 @@ uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
 - `DELETE /admin/users/{id}` - 删除用户
 
 #### 学生模块
-- `GET /api/v1/student/` - 获取学生列表
-- `POST /api/v1/student/` - 创建学生
-- `GET /api/v1/student/{id}` - 获取学生详情
-- `PUT /api/v1/student/{id}` - 更新学生
-- `DELETE /api/v1/student/{id}` - 删除学生
-
-#### 班级模块
-- `GET /api/v1/class/` - 获取班级列表
-- `POST /api/v1/class/` - 创建班级
-- `GET /api/v1/class/{id}` - 获取班级详情
-- `PUT /api/v1/class/{id}` - 更新班级
-- `DELETE /api/v1/class/{id}` - 删除班级
+- `GET /student/` - 获取学生列表（分页）
+- `POST /student/` - 创建学生
+- `GET /student/{id}` - 获取学生详情
+- `GET /student/no/{student_no}` - 按学号查询学生
+- `PUT /student/{id}` - 更新学生
+- `DELETE /student/{id}` - 删除学生
 
 #### 教师模块
-- `GET /api/v1/teacher/` - 获取教师列表
-- `POST /api/v1/teacher/` - 创建教师
-- `GET /api/v1/teacher/{id}` - 获取教师详情
-- `PUT /api/v1/teacher/{id}` - 更新教师
-- `DELETE /api/v1/teacher/{id}` - 删除教师
+- `GET /teacher/` - 获取教师列表（分页）
+- `POST /teacher/` - 创建教师
+- `GET /teacher/{id}` - 获取教师详情
+- `GET /teacher/no/{teacher_no}` - 按教师编号查询
+- `PUT /teacher/{id}` - 更新教师
+- `DELETE /teacher/{id}` - 删除教师
+
+#### 班级模块
+- `GET /class/` - 获取班级列表（分页）
+- `POST /class/` - 创建班级
+- `GET /class/{class_no}/` - 查看班级成员
+- `PUT /class/{class_no}` - 更新班级
+- `DELETE /class/{class_no}` - 删除班级
 
 #### 成绩模块
-- `GET /api/v1/score/` - 获取成绩列表
-- `POST /api/v1/score/` - 创建成绩
-- `GET /api/v1/score/student/{student_no}` - 按学号查询成绩
-- `GET /api/v1/score/class/{class_no}` - 按班级查询成绩
+- `GET /score/` - 获取成绩列表（分页）
+- `POST /score/` - 创建成绩
+- `GET /score/{id}` - 获取成绩详情
+- `GET /score/student/{student_no}` - 按学号查询成绩（分页）
+- `GET /score/class/{class_no}` - 按班级查询成绩（分页）
+- `GET /score/statistics/class/{class_no}` - 班级成绩统计
+- `GET /score/statistics/student/{student_no}` - 学生成绩统计
+- `PUT /score/{id}` - 更新成绩
+- `DELETE /score/{id}` - 删除成绩
 
 #### 就业模块
-- `GET /api/v1/employment/` - 获取就业列表
-- `POST /api/v1/employment/` - 创建就业记录
-- `GET /api/v1/employment/{id}` - 获取就业详情
-- `PUT /api/v1/employment/{id}` - 更新就业记录
-- `DELETE /api/v1/employment/{id}` - 删除就业记录
+- `GET /employment/` - 获取就业列表（分页）
+- `POST /employment/` - 创建就业记录
+- `PUT /employment/{id}` - 更新就业记录
+- `DELETE /employment/{id}` - 删除就业记录
 
 #### AI 模块
 - `POST /agent/sql` - AI SQL 查询
@@ -361,6 +405,13 @@ DB_NAME=student_management_system
 如有问题或建议，请提交 Issue 或联系项目维护者。
 
 ## 更新日志
+
+### v1.2.0 (2026-04-19)
+- ✅ 实现统一 API 响应格式 `UnifiedResponse`（`{status, messages, datas, pagination}`）
+- ✅ 改造所有业务模块（学生、教师、班级、成绩、就业、用户管理、AI）使用统一响应
+- ✅ 统一异常处理器返回 `UnifiedResponse` 格式
+- ✅ 前端 `api.js` 自动解包统一响应格式
+- ✅ 前端所有模块适配新的数据格式
 
 ### v1.1.0 (2026-04-17)
 - ✅ 集成 fastapi-users 用户认证系统

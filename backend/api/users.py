@@ -11,11 +11,12 @@ from backend.core.auth import UserRead, UserCreate, UserUpdate
 from backend.core.database import get_async_db as get_db
 from backend.models.user import User
 from backend.core.auth import get_current_active_superuser
+from backend.core.response import UnifiedResponse
 
 router = APIRouter(prefix="/admin/users", tags=["用户管理"])
 
 
-@router.get("", response_model=List[UserRead])
+@router.get("")
 async def get_all_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
@@ -25,10 +26,10 @@ async def get_all_users(
     """获取所有用户列表（仅管理员）"""
     result = await db.execute(select(User).offset(skip).limit(limit))
     users = result.scalars().all()
-    return users
+    return UnifiedResponse.success(datas=users, messages="查询成功")
 
 
-@router.get("/{user_id}", response_model=UserRead)
+@router.get("/{user_id}")
 async def get_user_by_id(
     user_id: int,
     db: AsyncSession = Depends(get_db),
@@ -38,8 +39,8 @@ async def get_user_by_id(
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
+        return UnifiedResponse.error(messages="用户不存在")
+    return UnifiedResponse.success(datas=[user], messages="查询成功")
 
 
 @router.delete("/{user_id}")
@@ -51,19 +52,19 @@ async def delete_user(
     """删除用户（仅管理员）"""
     # 不能删除自己
     if user_id == current_user.id:
-        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+        return UnifiedResponse.error(messages="不能删除自己")
     
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        return UnifiedResponse.error(messages="用户不存在")
     
     await db.delete(user)
     await db.commit()
-    return {"message": "User deleted successfully"}
+    return UnifiedResponse.success(messages="删除成功")
 
 
-@router.put("/{user_id}", response_model=UserRead)
+@router.put("/{user_id}")
 async def update_user(
     user_id: int,
     user_update: UserUpdate,
@@ -74,7 +75,7 @@ async def update_user(
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        return UnifiedResponse.error(messages="用户不存在")
     
     # 更新字段
     update_data = user_update.model_dump(exclude_unset=True)
@@ -83,10 +84,10 @@ async def update_user(
     
     await db.commit()
     await db.refresh(user)
-    return user
+    return UnifiedResponse.success(datas=[user], messages="更新成功")
 
 
-@router.post("", response_model=UserRead)
+@router.post("")
 async def create_user(
     user_create: UserCreate,
     user_manager: UserManager = Depends(get_user_manager),
@@ -95,6 +96,6 @@ async def create_user(
     """创建新用户（仅管理员）"""
     try:
         created_user = await user_manager.create(user_create)
-        return created_user
+        return UnifiedResponse.success(datas=[created_user], messages="创建成功")
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return UnifiedResponse.error(messages=str(e))

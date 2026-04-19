@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
 
-from backend.core.response import ResponseBuilder
+from backend.core.response import ResponseBuilder, UnifiedResponse
 from backend.core.logger import get_logger
 
 logger = get_logger("exceptions")
@@ -213,7 +213,7 @@ async def base_api_exception_handler(
     
     return JSONResponse(
         status_code=exc.code,
-        content=ResponseBuilder.error(exc.msg, exc.code, exc.data)
+        content=UnifiedResponse.error(messages=exc.msg, datas=exc.data).model_dump()
     )
 
 
@@ -232,10 +232,7 @@ async def http_exception_handler(
     
     return JSONResponse(
         status_code=exc.status_code,
-        content=ResponseBuilder.error(
-            msg=str(exc.detail),
-            code=exc.status_code
-        )
+        content=UnifiedResponse.error(messages=str(exc.detail)).model_dump()
     )
 
 
@@ -261,7 +258,7 @@ async def validation_exception_handler(
     
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content=ResponseBuilder.validation_error(errors, "数据验证失败")
+        content=UnifiedResponse.error(messages="数据验证失败", datas=errors).model_dump()
     )
 
 
@@ -281,7 +278,7 @@ async def pydantic_validation_exception_handler(
     
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content=ResponseBuilder.validation_error(errors, "数据格式错误")
+        content=UnifiedResponse.error(messages="数据格式错误", datas=errors).model_dump()
     )
 
 
@@ -301,7 +298,7 @@ async def general_exception_handler(
     
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content=ResponseBuilder.error("服务器内部错误", 500)
+        content=UnifiedResponse.error(messages="服务器内部错误").model_dump()
     )
 
 

@@ -47,18 +47,9 @@ async function fetchEmployments() {
       company_name: currentCompany
     });
     const data = await get(`/employment/?${params.toString()}`);
-    // 兼容后端返回格式 { count, data }
-    let employments = [];
-    let total = 0;
-    if (Array.isArray(data)) {
-      employments = data;
-      total = data.length;
-    } else if (data.data && Array.isArray(data.data)) {
-      employments = data.data;
-      total = data.count || data.total || employments.length;
-    } else {
-      throw new Error('后端返回格式错误');
-    }
+    // 统一响应格式 { datas, pagination }
+    let employments = data.datas || [];
+    let total = data.pagination ? data.pagination.count : employments.length;
     employmentsCache = employments;
     renderEmploymentList(employments);
     renderPagination(total);

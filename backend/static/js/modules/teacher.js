@@ -45,9 +45,10 @@ async function fetchTeachers() {
     console.log('请求URL:', url);
     const data = await get(url);
     console.log('返回数据:', data);
-    teachersCache = data.data || [];
+    teachersCache = data.datas || [];
+    const total = data.pagination ? data.pagination.count : teachersCache.length;
     renderTeacherTable(teachersCache);
-    renderPagination(data.count);
+    renderPagination(total);
   } catch (err) {
     console.error('获取教师列表失败:', err);
     showToast('获取教师列表失败', 'error');

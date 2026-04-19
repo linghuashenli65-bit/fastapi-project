@@ -35,9 +35,9 @@ async function fetchUsers() {
         });
         const data = await get(`/admin/users?${params.toString()}`);
         
-        // 处理返回数据（可能是数组或对象）
-        const users = Array.isArray(data) ? data : (data.data || data.items || []);
-        const count = data.count || users.length;
+        // 统一响应格式 { datas, pagination }
+        const users = data.datas || [];
+        const count = data.pagination ? data.pagination.count : users.length;
         
         renderUserTable(users);
         renderPagination(count);
@@ -216,7 +216,8 @@ async function showAddModal() {
 // 编辑用户弹窗
 async function showEditModal(userId) {
     try {
-        const user = await get(`/admin/users/${userId}`);
+        const result = await get(`/admin/users/${userId}`);
+        const user = (result.datas && result.datas[0]) || {};
         
         const modal = await createModal(`
             <h3>编辑用户 - ${escapeHtml(user.email)}</h3>

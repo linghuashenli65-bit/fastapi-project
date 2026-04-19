@@ -97,13 +97,15 @@ export async function render(container) {
         resultDiv.innerHTML = '<p style="color:#64748b;">执行中...</p>';
         try {
             const res = await post('/agent/sql', { query, model });
-            // 检查响应状态
-            if (res.code !== 200) {
+            // 统一响应格式：res = { datas, pagination, messages }
+            const data = res.datas && res.datas[0] ? res.datas[0] : {};
+            // 检查是否查询失败（datas中可能包含错误信息）
+            if (data.msg && !data.data) {
                 resultDiv.innerHTML = `
                     <div style="background:#fee2e2; padding:12px; border-radius:8px; color:#991b1b;">
                         <strong>❌ 查询失败</strong><br>
-                        错误信息：${escapeHtml(res.msg || '未知错误')}<br>
-                        SQL语句：<pre style="background:#f1f5f9; padding:8px; border-radius:4px; overflow-x:auto;">${escapeHtml(res.sql || '')}</pre>
+                        错误信息：${escapeHtml(data.msg || '未知错误')}<br>
+                        SQL语句：<pre style="background:#f1f5f9; padding:8px; border-radius:4px; overflow-x:auto;">${escapeHtml(data.sql || '')}</pre>
                     </div>
                 `;
                 return;
@@ -111,8 +113,8 @@ export async function render(container) {
 
             // 显示数据表格
             let html = '';
-            if (res.data && res.data.length > 0) {
-                html = renderDataTable(res.data);
+            if (data.data && data.data.length > 0) {
+                html = renderDataTable(data.data);
             } else {
                 html = `<div style="background:#fef3c7; padding:12px; border-radius:8px;">⚠️ 查询成功，但没有返回数据</div>`;
             }

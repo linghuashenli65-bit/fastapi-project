@@ -57,19 +57,18 @@ async function fetchScores() {
             page: currentPage,
             size: currentSize
         });
+        let data;
         if (currentStudentNo) {
-            const data = await get(`/score/student/${currentStudentNo}?${params.toString()}`);
-            renderScoreTable(data.data || []);
-            renderPagination(data.count);
+            data = await get(`/score/student/${currentStudentNo}?${params.toString()}`);
         } else if (currentClassNo) {
-            const data = await get(`/score/class/${currentClassNo}?${params.toString()}`);
-            renderScoreTable(data.data || []);
-            renderPagination(data.count);
+            data = await get(`/score/class/${currentClassNo}?${params.toString()}`);
         } else {
-            const data = await get(`/score/?${params.toString()}`);
-            renderScoreTable(data.data || []);
-            renderPagination(data.count);
+            data = await get(`/score/?${params.toString()}`);
         }
+        const scores = data.datas || [];
+        const total = data.pagination ? data.pagination.count : scores.length;
+        renderScoreTable(scores);
+        renderPagination(total);
     } catch (err) {
         showToast('获取成绩列表失败', 'error');
     }
@@ -206,7 +205,8 @@ function showAddModal() {
 
 async function showEditModal(id) {
     try {
-        const data = await get(`/score/${id}`);
+        const result = await get(`/score/${id}`);
+        const data = (result.datas && result.datas[0]) || {};
         const modal = createModal(`
             <h3>编辑成绩</h3>
             <form id="edit-score-form">
@@ -277,7 +277,8 @@ async function showClassStatistics() {
     }
 
     try {
-        const data = await get(`/score/statistics/class/${classNo}`);
+        const result = await get(`/score/statistics/class/${classNo}`);
+        const data = (result.datas && result.datas[0]) || {};
         renderStatistics(data, '班级');
     } catch (err) {
         showToast('获取统计数据失败', 'error');
@@ -292,7 +293,8 @@ async function showStudentStatistics() {
     }
 
     try {
-        const data = await get(`/score/statistics/student/${studentNo}`);
+        const result = await get(`/score/statistics/student/${studentNo}`);
+        const data = (result.datas && result.datas[0]) || {};
         renderStatistics(data, '学生');
     } catch (err) {
         showToast('获取统计数据失败', 'error');
