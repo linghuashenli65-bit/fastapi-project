@@ -1,14 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi_cache.decorator import cache
+
 from backend.core.database import get_async_db
 from backend.services.student_service import student_service
 from backend.schemas.student import StudentCreate, StudentUpdate, StudentInDB, StudentOut
 from backend.core.response import UnifiedResponse
+from backend.core.config import settings
+from backend.utils.helpers import cache_key_builder
 
 router = APIRouter()
 
 
 @router.get("/", summary="分页获得学生列表，按学生姓名模糊查找（可选）")
+@cache(expire=settings.CACHE_LIST_EXPIRE, key_builder=cache_key_builder)
 async def get_students(page: int = 1, size: int = 10, name: str = None, db: AsyncSession = Depends(get_async_db)):
     """获取学生分页列表"""
     result = await student_service.get_paginated_students(db, page=page, size=size, name=name)

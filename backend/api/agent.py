@@ -8,6 +8,7 @@ from backend.models.agent import dispatch_agent, generate_sql, agent_sql
 from backend.models.dashboard import build_dashboard
 from backend.schemas.agent import SQLRequest, QueryRequest, DashboardRequest
 from backend.core.response import UnifiedResponse
+from backend.core.config import settings
 from fastapi.responses import StreamingResponse
 
 router = APIRouter()

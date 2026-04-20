@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 
 from .llm import call_qwen, call_deepseek
 from backend.repositories.sql_service import execute_sql
-from backend.utils.helpers import clean_ai_response
+from backend.utils.helpers import clean_ai_response, ai_two_level_cache
 
 
 async def split_tasks(query: str, model: str = "qwen") -> List[Dict[str, Any]]:
@@ -315,7 +315,8 @@ async def ai_choose_chart_type(data: list, title: str, model: str = "qwen") -> s
     valid_types = ["bar", "line", "pie", "scatter", "area"]
     return chart_type if chart_type in valid_types else "bar"
 
-async def agent_sql(query: str,model:str=""):
+@ai_two_level_cache.cached(ttl=600)
+async def agent_sql(query: str, model: str = ""):
     sql =await generate_sql(query,model)
 
     # 如果大模型失败

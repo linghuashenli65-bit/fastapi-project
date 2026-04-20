@@ -19,6 +19,7 @@
 - 📈 **智能数据分析**：自动生成图表和分析报告
 - 🎯 **多模型支持**：支持通义千问 (Qwen) 和 DeepSeek
 - 🔄 **流式响应**：实时显示分析进度和结果
+- 🧠 **语义缓存**：基于 Redis Stack 向量搜索的语义级缓存，相似问题复用历史结果
 
 ### 用户认证与管理
 - 🔑 **JWT 认证**：基于 Token 的用户登录/注册
@@ -34,6 +35,10 @@
 - **认证**：fastapi-users (JWT)
 - **数据库**：MySQL
 - **ORM**：SQLAlchemy (Async)
+- **缓存**：
+  - FastAPI-Cache（列表接口缓存，支持 InMemory/Redis）
+  - Redis Stack 语义缓存（AI 查询结果，向量搜索）
+  - 本地 Embedding 模型（text2vec-base-chinese）
 - **AI 集成**：
   - 通义千问 API (Qwen)
   - DeepSeek API
@@ -77,6 +82,9 @@ python项目/
 │   ├── repositories/         # 数据访问层
 │   ├── schemas/             # 数据传输对象
 │   ├── services/            # 业务逻辑层
+│   │   ├── embedding.py    # Embedding 向量服务
+│   │   ├── semantic_cache.py # 语义搜索缓存
+│   │   └── ...             # 其他业务服务
 │   ├── static/             # 静态文件
 │   │   ├── index.html      # 主页面
 │   │   ├── login.html      # 登录页面
@@ -110,8 +118,9 @@ python项目/
 ## 快速开始
 
 ### 环境要求
-- Python 3.8+
+- Python 3.10+
 - MySQL 5.7+
+- Redis Stack（语义缓存，可选）
 - npm (可选，用于前端开发)
 
 ### 安装步骤
@@ -150,12 +159,20 @@ UPDATE users SET is_superuser = 1 WHERE id = 1;
 ```
 
 4. **配置 AI API**
-- 在 `backend/core/config.py` 中配置通义千问和 DeepSeek 的 API 密钥
+- 在 `.env` 文件中配置通义千问和 DeepSeek 的 API 密钥
 - 获取 API 密钥：
   - 通义千问：https://dashscope.aliyun.com/
   - DeepSeek：https://platform.deepseek.com/
 
-5. **启动服务器**
+5. **配置 Redis Stack（可选，用于语义缓存）**
+```bash
+# Docker 方式运行 Redis Stack
+docker run -d --name redis-stack -p 6379:6379 -p 8001:8001 redis/redis-stack:latest
+```
+- 在 `.env` 中添加 `SEMANTIC_CACHE_ENABLED=True`（默认已启用）
+- 不配置时自动降级为仅内存缓存，不影响正常使用
+
+6. **启动服务器**
 ```bash
 # 开发环境
 python backend/app/main.py
@@ -164,7 +181,7 @@ python backend/app/main.py
 uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-6. **访问应用**
+7. **访问应用**
 - 打开浏览器访问：http://localhost:8000 （登录页面）
 - 主页面：http://localhost:8000/static/index.html
 - API 文档：http://localhost:8000/docs
@@ -370,19 +387,24 @@ DB_NAME=student_management_system
 
 ### 2. AI API 调用失败
 - 检查 API 密钥是否正确配置
-- 检查网络连接
+- 检查网络连接（httpx 客户端已禁用代理，如需代理请移除 `proxy=None`）
 - 查看 API 配额是否充足
 
-### 3. 前端页面无法访问
+### 3. 语义缓存不可用
+- 检查 Redis Stack 是否运行：`docker ps | grep redis-stack`
+- 检查端口映射是否正确（需 `-p 6379:6379`）
+- 可在 `.env` 中设置 `SEMANTIC_CACHE_ENABLED=False` 关闭语义缓存
+
+### 4. 前端页面无法访问
 - 确保后端服务已启动
 - 检查静态文件路径配置
 - 查看浏览器控制台错误信息
 
-### 4. 登录后看不到用户管理菜单
+### 5. 登录后看不到用户管理菜单
 - 确认当前用户已设为管理员（`is_superuser = 1`）
 - 重新登录以刷新 Token 和用户信息
 
-### 5. 用户管理接口返回 403
+### 6. 用户管理接口返回 403
 - 确认请求头包含有效的 Authorization Token
 - 确认当前用户 `is_superuser` 为 True
 
@@ -405,6 +427,13 @@ DB_NAME=student_management_system
 如有问题或建议，请提交 Issue 或联系项目维护者。
 
 ## 更新日志
+
+### v1.3.0 (2026-04-20)
+- ✅ FastAPI-Cache 列表接口缓存（InMemory/Redis 双后端）
+- ✅ AI 模块两级缓存：L1 内存精确匹配 + L2 Redis Stack 语义搜索
+- ✅ 本地 Embedding 模型（text2vec-base-chinese，768维）
+- ✅ Qwen API 切换 OpenAI 兼容格式
+- ✅ 修复 Pydantic v2 序列化、就业模块编辑、弹窗取消按钮等问题
 
 ### v1.2.0 (2026-04-19)
 - ✅ 实现统一 API 响应格式 `UnifiedResponse`（`{status, messages, datas, pagination}`）

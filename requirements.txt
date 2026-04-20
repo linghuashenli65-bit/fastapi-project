@@ -3,6 +3,13 @@ fastapi==0.136.0
 uvicorn[standard]==0.24.0
 gunicorn==21.2.0
 
+# Cache
+fastapi-cache2[redis]==0.2.2
+redis>=5.0.0
+
+# Embedding (语义缓存)
+sentence-transformers>=2.6.0
+
 # Database
 sqlalchemy==2.0.30
 asyncmy==0.2.9

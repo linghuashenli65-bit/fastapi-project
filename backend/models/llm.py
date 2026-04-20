@@ -4,25 +4,19 @@ from backend.core.config import API_CONFIG
 
 async def call_qwen(prompt: str) -> str:
     """
-    调用通义千问API
-    通义千问API格式：
-    - 请求：{"model": "qwen-max", "input": {"messages": [...]}, "parameters": {...}}
-    - 响应：{"output": {"text": "..."}, "usage": {...}}
+    调用通义千问API（OpenAI兼容格式）
+    DashScope兼容模式：与OpenAI格式一致
     """
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=60.0, proxy=None) as client:
             response = await client.post(
                 API_CONFIG["qwen"]["url"],
                 json={
                     "model": API_CONFIG["qwen"]["model"],
-                    "input": {
-                        "messages": [
-                            {"role": "user", "content": prompt}
-                        ]
-                    },
-                    "parameters": {
-                        "temperature": 0.7
-                    }
+                    "messages": [
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.7
                 },
                 headers={
                     "Authorization": f"Bearer {API_CONFIG['qwen']['api_key']}",
@@ -36,11 +30,8 @@ async def call_qwen(prompt: str) -> str:
                 return ""
 
             result = response.json()
-            # 检查响应格式（通义千问格式）
-            if "output" in result and "text" in result["output"]:
-                return result["output"]["text"]
-            # 兼容可能的 OpenAI 格式
-            elif "choices" in result:
+            # OpenAI兼容格式
+            if "choices" in result:
                 return result["choices"][0]["message"]["content"]
             else:
                 print(f"调用Qwen API失败: 响应格式错误")
@@ -58,7 +49,7 @@ async def call_deepseek(prompt: str) -> str:
     调用DeepSeek API
     """
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=60.0, proxy=None) as client:
             response = await client.post(
                 API_CONFIG["deepseek"]["url"],
                 json={

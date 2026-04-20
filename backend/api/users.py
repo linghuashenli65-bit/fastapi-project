@@ -5,6 +5,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi_cache.decorator import cache
 
 from backend.core.auth import fastapi_users, get_user_manager, UserManager
 from backend.core.auth import UserRead, UserCreate, UserUpdate
@@ -12,11 +13,14 @@ from backend.core.database import get_async_db as get_db
 from backend.models.user import User
 from backend.core.auth import get_current_active_superuser
 from backend.core.response import UnifiedResponse
+from backend.core.config import settings
+from backend.utils.helpers import cache_key_builder
 
 router = APIRouter(prefix="/admin/users", tags=["用户管理"])
 
 
 @router.get("")
+@cache(expire=settings.CACHE_LIST_EXPIRE, key_builder=cache_key_builder)
 async def get_all_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),

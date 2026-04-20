@@ -1,14 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi_cache.decorator import cache
+
 from backend.core.database import get_async_db
 from backend.services.score_service import score_service
 from backend.schemas.score import ScoreCreate, ScoreUpdate
 from backend.core.response import UnifiedResponse
+from backend.core.config import settings
+from backend.utils.helpers import cache_key_builder
 
 router = APIRouter()
 
 
 @router.get("/", summary="分页获取成绩列表")
+@cache(expire=settings.CACHE_LIST_EXPIRE, key_builder=cache_key_builder)
 async def get_scores(
     page: int = Query(1, description="页码"),
     size: int = Query(10, description="每页数量"),
@@ -38,6 +43,7 @@ async def get_score_by_id(
 
 
 @router.get("/student/{student_no}", summary="按学号查询成绩")
+@cache(expire=settings.CACHE_LIST_EXPIRE, key_builder=cache_key_builder)
 async def get_scores_by_student(
     student_no: str,
     page: int = Query(1, description="页码"),
@@ -56,6 +62,7 @@ async def get_scores_by_student(
 
 
 @router.get("/class/{class_no}", summary="按班级查询成绩")
+@cache(expire=settings.CACHE_LIST_EXPIRE, key_builder=cache_key_builder)
 async def get_scores_by_class(
     class_no: str,
     page: int = Query(1, description="页码"),
@@ -114,6 +121,7 @@ async def delete_score(
 
 
 @router.get("/statistics/class/{class_no}", summary="班级成绩统计")
+@cache(expire=settings.CACHE_LIST_EXPIRE, key_builder=cache_key_builder)
 async def get_class_statistics(
     class_no: str,
     db: AsyncSession = Depends(get_async_db)
@@ -124,6 +132,7 @@ async def get_class_statistics(
 
 
 @router.get("/statistics/student/{student_no}", summary="学生成绩统计")
+@cache(expire=settings.CACHE_LIST_EXPIRE, key_builder=cache_key_builder)
 async def get_student_statistics(
     student_no: str,
     db: AsyncSession = Depends(get_async_db)

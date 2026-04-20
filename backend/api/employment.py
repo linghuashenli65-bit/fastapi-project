@@ -1,14 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi_cache.decorator import cache
+
 from backend.core.database import get_async_db
 from backend.services.employment_service import employment_service
 from backend.schemas.employment import EmploymentCreate, EmploymentUpdate, EmploymentOutDB
 from backend.core.response import UnifiedResponse
+from backend.core.config import settings
+from backend.utils.helpers import cache_key_builder
 
 router = APIRouter()
 
 
 @router.get("/", summary="分页获得就业列表,可以按公司名称筛选")
+@cache(expire=settings.CACHE_LIST_EXPIRE, key_builder=cache_key_builder)
 async def get_employment(page: int = 1, size: int = 10, company_name: str = None, db: AsyncSession = Depends(get_async_db)):
     """获取就业信息分页列表"""
     result = await employment_service.get_paginated_employment(db, page=page, size=size, company_name=company_name)

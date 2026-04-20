@@ -1,6 +1,6 @@
 # API URL配置（非敏感信息）
 QWEN_URL = (
-    "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
+    "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
 )
 DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
 from pathlib import Path
@@ -59,6 +59,24 @@ class Settings(BaseSettings):
     CORS_ALLOW_CREDENTIALS: bool = Field(default=True)
     CORS_ALLOW_METHODS: list = Field(default_factory=lambda: ["*"])
     CORS_ALLOW_HEADERS: list = Field(default_factory=lambda: ["*"])
+
+    # 缓存配置
+    CACHE_TYPE: str = Field(default="memory", description="缓存类型: memory/redis")
+    CACHE_REDIS_URL: str = Field(default="redis://localhost:6379/0", description="Redis连接地址")
+    CACHE_DEFAULT_EXPIRE: int = Field(default=300, description="默认缓存过期时间(秒)")
+    CACHE_LIST_EXPIRE: int = Field(default=60, description="列表接口缓存过期时间(秒)")
+    CACHE_AI_EXPIRE: int = Field(default=600, description="AI查询缓存过期时间(秒)")
+
+    # Redis Stack 语义缓存配置
+    REDIS_STACK_URL: str = Field(default="redis://localhost:6379", description="Redis Stack连接地址")
+    SEMANTIC_CACHE_ENABLED: bool = Field(default=True, description="是否启用语义缓存")
+    SEMANTIC_CACHE_TTL: int = Field(default=3600, description="语义缓存过期时间(秒)")
+    SEMANTIC_CACHE_THRESHOLD: float = Field(default=0.85, description="语义相似度阈值(0-1)")
+    SEMANTIC_CACHE_TOP_K: int = Field(default=3, description="语义搜索返回最相似的前K条")
+    EMBEDDING_MODEL_NAME: str = Field(
+        default="shibing624/text2vec-base-chinese",
+        description="本地Embedding模型名称(HuggingFace)"
+    )
 
     # 生成数据库 URL
     @property

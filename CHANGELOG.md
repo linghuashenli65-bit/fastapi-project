@@ -2,6 +2,45 @@
 
 所有重要的项目变更都将记录在此文件中。
 
+## [1.3.0] - 2026-04-20
+
+### 新增 (Added)
+- ✨ FastAPI-Cache 缓存机制（Lifespan 模式初始化）
+  - 各业务模块列表接口缓存（学生、教师、班级、成绩、就业、用户管理）
+  - 支持 InMemory / Redis 两种后端，通过 `CACHE_TYPE` 配置切换
+  - 自定义 `cache_key_builder` 排除不可序列化的依赖注入参数
+- ✨ AI 模块两级缓存架构
+  - **L1 - TTLCache**：内存精确匹配缓存，毫秒级响应
+  - **L2 - SemanticCache**：基于 Redis Stack 的语义搜索缓存
+    - 使用 `text2vec-base-chinese` 本地 Embedding 模型（768维）
+    - RediSearch FLAT 向量索引 + COSINE 距离度量
+    - KNN 语义搜索 + 相似度阈值过滤（默认 0.85）
+    - L2 命中时自动回填 L1
+    - Redis 不可用时自动降级为仅 L1 模式
+- ✨ 配置项扩展
+  - 缓存配置：`CACHE_TYPE`、`CACHE_REDIS_URL`、`CACHE_DEFAULT_EXPIRE`、`CACHE_LIST_EXPIRE`、`CACHE_AI_EXPIRE`
+  - 语义缓存配置：`REDIS_STACK_URL`、`SEMANTIC_CACHE_ENABLED`、`SEMANTIC_CACHE_TTL`、`SEMANTIC_CACHE_THRESHOLD`、`SEMANTIC_CACHE_TOP_K`、`EMBEDDING_MODEL_NAME`
+
+### 变更 (Changed)
+- 🔄 Qwen API 切换为 OpenAI 兼容格式（`/compatible-mode/v1/chat/completions`）
+- 🔄 httpx 客户端添加 `proxy=None` 绕过本地代理导致的连接问题
+- 🔄 `@ai_cache.cached` 替换为 `@ai_two_level_cache.cached` 两级缓存装饰器
+
+### 修复 (Fixed)
+- 🐛 修复 `PydanticSerializationError`：ORM 对象序列化问题，添加 `arbitrary_types_allowed` 和 `@field_serializer`
+- 🐛 修复就业模块修改保存失败：Pydantic v2 `Optional[T]` 字段需 `Field(default=None)`
+- 🐛 修复就业模块前端值映射问题：`is_current`/`salary` 类型转换、`record_type` 枚举值映射
+- 🐛 修复所有模块弹窗取消按钮不响应：`.modal` → `.modal-overlay`
+- 🐛 修复 Redis Stack `IndexType` 枚举和 `IndexDefinition` 兼容性问题
+- 🐛 修复语义缓存 `model` 为空时搜索语法错误
+
+### 依赖 (Dependencies)
+- ➕ `fastapi-cache2[redis]==0.2.2`
+- ➕ `redis>=5.0.0`
+- ➕ `sentence-transformers>=2.6.0`
+
+---
+
 ## [1.2.0] - 2026-04-19
 
 ### 新增 (Added)
@@ -197,13 +236,14 @@
 - [ ] 添加单元测试
 - [ ] 添加集成测试
 
-### [1.3.0] - 计划中
-- [ ] 引入 Redis 缓存机制
-  - [ ] 缓存各业务模块列表数据（学生、教师、班级、成绩、就业）
-  - [ ] 缓存 AI 查询分析结果
-  - [ ] AI 模块添加语义缓存（基于向量相似度匹配相似问题，复用历史回答）
+### [1.3.0] - 已完成 ✅
+- [x] 引入 Redis 缓存机制
+  - [x] 缓存各业务模块列表数据（学生、教师、班级、成绩、就业）
+  - [x] 缓存 AI 查询分析结果
+  - [x] AI 模块添加语义缓存（基于向量相似度匹配相似问题，复用历史回答）
+  - [x] 缓存失效策略（TTL 过期自动清理）
+  - [x] 缓存预热与过期时间配置
   - [ ] 缓存失效策略（数据变更时自动清除相关缓存）
-  - [ ] 缓存预热与过期时间配置
   - [ ] 添加缓存命中/未命中监控指标
 
 ### [2.0.0] - 未来计划

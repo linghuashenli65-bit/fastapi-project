@@ -35,7 +35,7 @@ app_logger = get_logger("app")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
-    # 启动事件
+    # ---- 启动事件 ----
     frontend_api_base = settings.FRONTEND_API_BASE
 
     config_file_path = Path(__file__).parent.parent / "static" / "js" / "config.js"
@@ -49,6 +49,37 @@ export const DEFAULT_SIZE = 10;
     config_file_path.write_text(config_content, encoding="utf-8")
     app_logger.info(f"前端配置文件已生成: API_BASE = {frontend_api_base}")
 
+    # 初始化 fastapi-cache
+    from fastapi_cache import FastAPICache
+    from fastapi_cache.backends.inmemory import InMemoryBackend
+    from fastapi_cache.backends.redis import RedisBackend
+    from redis import asyncio as aioredis
+
+    if settings.CACHE_TYPE == "redis":
+        redis = aioredis.from_url(settings.CACHE_REDIS_URL, encoding="utf8", decode_responses=True)
+        FastAPICache.init(RedisBackend(redis), prefix="sms_cache")
+        app_logger.info(f"缓存已初始化: Redis ({settings.CACHE_REDIS_URL})")
+    else:
+        FastAPICache.init(InMemoryBackend(), prefix="sms_cache")
+        app_logger.info("缓存已初始化: InMemory")
+
+    # 初始化语义缓存（L2）
+    if settings.SEMANTIC_CACHE_ENABLED:
+        try:
+            from backend.services.semantic_cache import semantic_cache
+            from backend.services.embedding import get_embedding_dim
+            await semantic_cache.init(settings.REDIS_STACK_URL)
+            if semantic_cache._initialized:
+                from backend.utils.helpers import ai_two_level_cache
+                ai_two_level_cache.set_l2(semantic_cache)
+                app_logger.info(
+                    f"语义缓存已初始化: Redis Stack ({settings.REDIS_STACK_URL}), "
+                    f"阈值={settings.SEMANTIC_CACHE_THRESHOLD}, "
+                    f"维度={get_embedding_dim()}"
+                )
+        except Exception as e:
+            app_logger.warning(f"语义缓存初始化失败，将使用仅L1模式: {e}")
+
     app_logger.info("=" * 50)
     app_logger.info("学生管理系统启动中...")
     app_logger.info("版本: 1.0.0")
@@ -57,7 +88,19 @@ export const DEFAULT_SIZE = 10;
 
     yield  # 应用运行中
 
-    # 关闭事件
+    # ---- 关闭事件 ----
+    FastAPICache.reset()
+    app_logger.info("缓存已清理")
+
+    # 清理语义缓存
+    if settings.SEMANTIC_CACHE_ENABLED:
+        try:
+            from backend.services.semantic_cache import semantic_cache
+            await semantic_cache.close()
+            app_logger.info("语义缓存已清理")
+        except Exception:
+            pass
+
     app_logger.info("学生管理系统已停止")
 
 
