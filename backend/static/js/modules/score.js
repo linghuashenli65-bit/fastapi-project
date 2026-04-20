@@ -185,7 +185,7 @@ function showAddModal() {
                 <input type="number" name="score" required min="0" max="100" step="0.01">
             </div>
             <button type="submit" class="btn btn-primary">保存</button>
-            <button type="button" class="btn btn-danger" onclick="this.closest('.modal').remove()">取消</button>
+            <button type="button" class="btn btn-danger" onclick="this.closest('.modal-overlay').remove()">取消</button>
         </form>
     `);
 
@@ -235,7 +235,7 @@ async function showEditModal(id) {
                     <input type="number" name="score" value="${data.score}" required min="0" max="100" step="0.01">
                 </div>
                 <button type="submit" class="btn btn-primary">保存</button>
-                <button type="button" class="btn btn-danger" onclick="this.closest('.modal').remove()">取消</button>
+                <button type="button" class="btn btn-danger" onclick="this.closest('.modal-overlay').remove()">取消</button>
             </form>
         `);
 

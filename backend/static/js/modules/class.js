@@ -189,7 +189,7 @@ function showAddModal() {
             <div class="form-group"><label>班级名称*</label><input name="class_name" required></div>
             <div class="form-group"><label>开课日期</label><input type="date" name="start_date"></div>
             <button type="submit" class="btn btn-primary">保存</button>
-            <button type="button" class="btn btn-danger" onclick="this.closest('.modal').remove()">取消</button>
+            <button type="button" class="btn btn-danger" onclick="this.closest('.modal-overlay').remove()">取消</button>
         </form>
     `);
 
@@ -222,7 +222,7 @@ function showEditModal(classData) {
             <div class="form-group"><label>班级名称*</label><input name="class_name" value="${escapeHtml(classData.class_name)}" required></div>
             <div class="form-group"><label>开课日期</label><input type="date" name="start_date" value="${classData.start_date || ''}"></div>
             <button type="submit" class="btn btn-primary">保存</button>
-            <button type="button" class="btn btn-danger" onclick="this.closest('.modal').remove()">取消</button>
+            <button type="button" class="btn btn-danger" onclick="this.closest('.modal-overlay').remove()">取消</button>
         </form>
     `);
 

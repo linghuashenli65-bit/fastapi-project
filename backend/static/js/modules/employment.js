@@ -98,7 +98,7 @@ function renderEmploymentList(list) {
                 <td>${formatSalary(e.salary)}</td>
                 <td>${escapeHtml(e.offer_date || '')}</td>
                 <td>${escapeHtml(e.employment_start_date || '')}</td>
-                <td>${escapeHtml(e.record_type || '')}</td>
+                <td>${escapeHtml(formatRecordType(e.record_type))}</td>
                 <td class="${isCurrentClass}">${isCurrentText}</td>
                 <td>
                     <button class="btn btn-sm btn-primary edit-emp" data-id="${e.id}">编辑</button>
@@ -155,10 +155,8 @@ function showAddModal() {
             <div class="form-group"><label>入职日期</label><input type="date" name="employment_start_date"></div>
             <div class="form-group"><label>记录类型</label>
                 <select name="record_type">
-                    <option value="正式">正式</option>
-                    <option value="实习">实习</option>
-                    <option value="兼职">兼职</option>
-                    <option value="其他">其他</option>
+                    <option value="offer">录用</option>
+                    <option value="employment">就业</option>
                 </select>
             </div>
             <div class="form-group"><label>当前状态</label>
@@ -168,7 +166,7 @@ function showAddModal() {
                 </select>
             </div>
             <button type="submit" class="btn btn-primary">保存</button>
-            <button type="button" class="btn btn-danger" onclick="this.closest('.modal').remove()">取消</button>
+            <button type="button" class="btn btn-danger" onclick="this.closest('.modal-overlay').remove()">取消</button>
         </form>
     `);
 
@@ -178,6 +176,14 @@ function showAddModal() {
     if (!data.student_no || !data.company_name || !data.job_title) {
       showToast('学号、公司名称和职位不能为空', 'error');
       return;
+    }
+    // is_current 需要转为整数
+    if (data.is_current !== undefined && data.is_current !== '') {
+      data.is_current = parseInt(data.is_current);
+    }
+    // salary 需要转为整数
+    if (data.salary !== undefined && data.salary !== '') {
+      data.salary = parseInt(data.salary);
     }
     try {
       await post('/employment/', data);
@@ -208,20 +214,18 @@ async function showEditModal(empData) {
             <div class="form-group"><label>入职日期</label><input type="date" name="employment_start_date" value="${empData.employment_start_date || ''}"></div>
             <div class="form-group"><label>记录类型</label>
                 <select name="record_type">
-                    <option value="正式" ${empData.record_type === '正式' ? 'selected' : ''}>正式</option>
-                    <option value="实习" ${empData.record_type === '实习' ? 'selected' : ''}>实习</option>
-                    <option value="兼职" ${empData.record_type === '兼职' ? 'selected' : ''}>兼职</option>
-                    <option value="其他" ${empData.record_type === '其他' ? 'selected' : ''}>其他</option>
+                    <option value="offer" ${empData.record_type === 'offer' ? 'selected' : ''}>录用</option>
+                    <option value="employment" ${empData.record_type === 'employment' ? 'selected' : ''}>就业</option>
                 </select>
             </div>
             <div class="form-group"><label>当前状态</label>
                 <select name="is_current">
-                    <option value="1" ${empData.is_current === 1 ? 'selected' : ''}>当前</option>
-                    <option value="0" ${empData.is_current === 0 ? 'selected' : ''}>历史</option>
+                    <option value="1" ${String(empData.is_current) === '1' ? 'selected' : ''}>当前</option>
+                    <option value="0" ${String(empData.is_current) === '0' ? 'selected' : ''}>历史</option>
                 </select>
             </div>
             <button type="submit" class="btn btn-primary">保存</button>
-            <button type="button" class="btn btn-danger" onclick="this.closest('.modal').remove()">取消</button>
+            <button type="button" class="btn btn-danger" onclick="this.closest('.modal-overlay').remove()">取消</button>
         </form>
     `);
 
@@ -230,6 +234,14 @@ async function showEditModal(empData) {
     const data = serializeForm(e.target);
     const id = data.id;
     delete data.id;
+    // is_current 需要转为整数
+    if (data.is_current !== undefined && data.is_current !== '') {
+      data.is_current = parseInt(data.is_current);
+    }
+    // salary 需要转为整数
+    if (data.salary !== undefined && data.salary !== '') {
+      data.salary = parseInt(data.salary);
+    }
     Object.keys(data).forEach(k => { if (data[k] === '') delete data[k]; });
     try {
       await put(`/employment/${id}`, data);
@@ -265,6 +277,11 @@ function formatSalary(salary) {
     return '-';
   }
   return `${Number(salary).toLocaleString()}k/月`;
+}
+
+function formatRecordType(type) {
+  const map = { 'offer': '录用', 'employment': '就业' };
+  return map[type] || type || '';
 }
 
 function escapeHtml(str) {
