@@ -5,15 +5,33 @@
 
 from typing import Any, Optional, Generic, TypeVar, List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
 # 泛型类型变量
 T = TypeVar('T')
 
 
+def _orm_to_dict(obj: Any) -> Any:
+    """将 SQLAlchemy ORM 对象转换为字典，非 ORM 对象直接返回"""
+    if obj is None:
+        return None
+    # 检查是否是 SQLAlchemy ORM 实例（有 __tablename__ 属性的类实例）
+    if hasattr(obj, '__tablename__') or hasattr(type(obj), '__tablename__'):
+        result = {}
+        for column in obj.__table__.columns:
+            val = getattr(obj, column.name, None)
+            # 处理 datetime 等不可 JSON 序列化的类型
+            if hasattr(val, 'isoformat'):
+                val = val.isoformat()
+            result[column.name] = val
+        return result
+    return obj
+
+
 # ==================== 新版统一响应格式 ====================
 
 class UnifiedResponse(BaseModel, Generic[T]):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     """
     统一响应模型（新版）
     
@@ -42,6 +60,15 @@ class UnifiedResponse(BaseModel, Generic[T]):
     messages: str = Field(description="提示信息")
     datas: Optional[T] = Field(default=None, description="数据列表")
     pagination: Optional[dict] = Field(default=None, description="分页信息")
+
+    @field_serializer('datas')
+    def serialize_datas(self, value: Any) -> Any:
+        """将 SQLAlchemy ORM 对象转换为可序列化的字典"""
+        if value is None:
+            return None
+        if isinstance(value, list):
+            return [_orm_to_dict(item) for item in value]
+        return _orm_to_dict(value)
     
     @classmethod
     def success(
