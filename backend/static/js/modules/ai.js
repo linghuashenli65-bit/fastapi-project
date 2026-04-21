@@ -312,21 +312,56 @@ export async function render(container) {
                 chartsData.forEach((chart, idx) => {
                     const card = document.createElement('div');
                     card.className = 'chart-card';
+                    
+                    // 标题行 + 翻转按钮
+                    const headerDiv = document.createElement('div');
+                    headerDiv.style.display = 'flex';
+                    headerDiv.style.justifyContent = 'space-between';
+                    headerDiv.style.alignItems = 'center';
+                    
                     const title = document.createElement('h3');
                     title.innerText = chart.title || `图表 ${idx + 1}`;
-                    card.appendChild(title);
+                    title.style.margin = '0';
+                    headerDiv.appendChild(title);
+                    
+                    const flipBtn = document.createElement('button');
+                    flipBtn.className = 'btn btn-small';
+                    flipBtn.innerText = '📊 查看数据';
+                    flipBtn.style.fontSize = '12px';
+                    flipBtn.style.padding = '4px 8px';
+                    headerDiv.appendChild(flipBtn);
+                    
+                    card.appendChild(headerDiv);
+                    
+                    // 图表容器
                     const chartDiv = document.createElement('div');
-                    const chartId = `dashboard_chart_${Date.now()}_${idx}`;
+                    const chartId = `dashboard_chart_${idx}`;
                     chartDiv.id = chartId;
                     chartDiv.style.width = '100%';
                     chartDiv.style.height = '340px';
                     card.appendChild(chartDiv);
+                    
+                    // 表格容器（初始隐藏）
+                    const tableDiv = document.createElement('div');
+                    const tableId = `dashboard_table_${idx}`;
+                    tableDiv.id = tableId;
+                    tableDiv.style.display = 'none';
+                    tableDiv.style.width = '100%';
+                    tableDiv.style.maxHeight = '340px';
+                    tableDiv.style.overflow = 'auto';
+                    card.appendChild(tableDiv);
+                    
                     gridDiv.appendChild(card);
+                    
+                    // 保存 chartId 和 tableId 供 setTimeout 使用
+                    const savedChartId = chartId;
+                    const savedTableId = tableId;
+                    
                     // 渲染 ECharts
                     setTimeout(() => {
                         const option = chart.option;
                         if (option && typeof echarts !== 'undefined') {
-                            const dom = document.getElementById(chartId);
+                            const dom = document.getElementById(savedChartId);
                             if (dom) {
                                 const myChart = echarts.init(dom);
                                 if (option.series && !Array.isArray(option.series)) {
@@ -337,7 +372,59 @@ export async function render(container) {
                             }
                         }
                     }, 50);
+                    
+                    // 渲染原始表格数据
+                    setTimeout(() => {
+                        const tableContainer = document.getElementById(savedTableId);
+                        console.log('Table container:', savedTableId, tableContainer, chart.table);
+                        if (tableContainer && chart.table) {
+                            tableContainer.innerHTML = renderChartTable(chart.table);
+                        }
+                    }, 50);
+                    
+                    // 翻转按钮点击事件
+                    let isChartView = true;
+                    flipBtn.onclick = () => {
+                        isChartView = !isChartView;
+                        chartDiv.style.display = isChartView ? 'block' : 'none';
+                        tableDiv.style.display = isChartView ? 'none' : 'block';
+                        flipBtn.innerText = isChartView ? '📊 查看数据' : '📈 查看图表';
+                        // 切换时重置图表大小
+                        if (isChartView && typeof echarts !== 'undefined') {
+                            echarts.getInstanceByDom(chartDiv)?.resize();
+                        }
+                    };
                 });
+            }
+            
+            // 渲染图表对应的表格数据
+            function renderChartTable(table) {
+                if (!table || !table.columns || !table.rows) {
+                    return '<p style="color:#64748b;">暂无数据</p>';
+                }
+                const columns = table.columns;
+                const rows = table.rows;
+                
+                let html = `
+                    <table class="data-table" style="font-size:12px; width:100%;">
+                        <thead>
+                            <tr>
+                                ${columns.map(col => `<th style="padding:6px 8px; background:#f1f5f9;">${escapeHtml(col)}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                rows.forEach(row => {
+                    html += '<tr>';
+                    columns.forEach(col => {
+                        const value = row[col];
+                        const displayValue = value === null || value === undefined ? '' : String(value);
+                        html += `<td style="padding:6px 8px; border-bottom:1px solid #e2e8f0;">${escapeHtml(displayValue)}</td>`;
+                    });
+                    html += '</tr>';
+                });
+                html += '</tbody></table>';
+                return html;
             }
         } catch (err) {
             console.error(err);

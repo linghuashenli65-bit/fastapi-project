@@ -17,7 +17,7 @@ async def split_tasks(query: str, model: str = "qwen") -> List[Dict[str, Any]]:
     要求：
     1. 返回JSON数组
     2. 每个元素包含 name 和 query
-    3. 不要解释
+    3. 不要解释  
     4. 只输出最重要的2到4个，按重要度排序
 
     示例：
@@ -235,8 +235,48 @@ async def generate_analysis(charts: list, model: str = "qwen", length: str = "me
 
     # 长度对应的提示词
     length_prompts = {
-        "short": "请生成一段约50-100字的简洁分析结论，概括核心发现，不要超过100字。",
-        "medium": "请生成一段约300左右字的分析，指出主要趋势、对比和异常点。",
+        "short": """
+    ##总体概览
+    核心结论先行：用1句话概括所有图表最重要的发现，直接指出结果或变化方向。
+    主题与范围：简要说明图表分析的主题，以及涉及的时间、类别或维度。
+    
+    ##关键指标与趋势
+    识别最主要趋势：概括整体是增长、下降、波动还是稳定。
+    突出关键数据：点出最明显的峰值、谷值、异常点或领先项，但无需展开过多细节。
+    
+    ##比较与关联
+    简要对比：说明不同类别、渠道、地区或时间段之间最显著的差异。
+    指出可能关联：如多个指标同步变化，可简述其联系。
+    
+    ##结论与建议
+    总结核心洞察：用一句话重申最值得关注的发现。
+    提出简短建议：给出一个明确、可执行的方向。
+    
+    总字数控制在50-100字，语言精炼直接，不要超过100字。
+    """,
+
+        "medium": """
+    ##总体概览
+    核心结论先行：用1-2句话概括所有图表共同反映的主要发现。
+    主题与范围：说明图表分析的主题，并提及覆盖的时间、类别或维度。
+    
+    ##关键指标与趋势
+    识别主要模式：指出整体呈现增长、下降、波动、稳定或周期性趋势。
+    突出极值：说明最大值、最小值、转折点或异常变化。
+    适度量化：可使用增长率、占比、差距等关键数据增强结论可信度。
+    
+    ##比较与关联
+    横向对比：比较不同图表或不同系列之间的差异，指出谁表现更优或变化更快。
+    发现关联：如两个指标走势一致或相反，可说明可能存在的联系。
+    
+    ##异常与特例
+    指出明显异常点，并简要推测可能原因，如促销活动、季节因素、外部环境变化等。
+    
+    ##结论与建议
+    总结最重要的业务启示。
+    提出1-2条可执行建议或后续关注方向。
+    总字数控制在250-350字左右，内容完整、重点清晰。
+    """,
         "long": """
         ##总体概览
 核心结论先行：用一两句话概括所有图表共同指向的最重要发现。例如："综合图1-3，过去三个季度用户增长主要来自Z世代，但付费转化率未同步提升。"
@@ -317,21 +357,35 @@ async def ai_choose_chart_type(data: list, title: str, model: str = "qwen") -> s
 
 @ai_two_level_cache.cached(ttl=600)
 async def agent_sql(query: str, model: str = ""):
-    sql =await generate_sql(query,model)
+    """
+    AI SQL 查询入口，支持 SQL 执行失败后自动重试生成
+    最多重试 3 次，每次失败会将错误信息反馈给 AI
+    """
+    max_retries = 3
+    error_feedback = ""
 
-    # 如果大模型失败
-    if sql.startswith("ERROR"):
-        return {"code": 500, "msg": "大模型调用失败", "sql": sql, "data": []}
+    for attempt in range(max_retries + 1):
+        sql = await generate_sql(query, model, error_feedback=error_feedback if attempt > 0 else "")
 
-    # 正确判断
-    if not sql.lower().startswith("select"):
-        return {"code": 400, "msg": "只允许SELECT查询", "sql": sql, "data": []}
+        # 如果大模型失败
+        if sql.startswith("ERROR"):
+            return {"code": 500, "msg": "大模型调用失败", "sql": sql, "data": []}
 
-    try:
-        data =await execute_sql(sql)
-        return {"code": 200, "msg": "success", "sql": sql, "data": data}
-    except Exception as e:
-        return {"code": 500, "msg": str(e), "sql": sql, "data": []}
+        # 正确判断
+        if not sql.lower().startswith("select"):
+            return {"code": 400, "msg": "只允许SELECT查询", "sql": sql, "data": []}
+
+        try:
+            data = await execute_sql(sql)
+            return {"code": 200, "msg": "success", "sql": sql, "data": data}
+        except Exception as e:
+            error_msg = str(e)
+            if attempt < max_retries:
+                error_feedback = error_msg
+                print(f"SQL执行失败 (尝试 {attempt + 1}/{max_retries + 1}): {error_msg}")
+                print(f"正在重新生成 SQL...")
+            else:
+                return {"code": 500, "msg": f"SQL执行失败，已重试{max_retries}次仍失败: {error_msg}", "sql": sql, "data": []}
 
 
 async def dispatch_agent(query: str, model: str = "qwen"):
