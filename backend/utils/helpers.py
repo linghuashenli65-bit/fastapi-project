@@ -116,36 +116,100 @@ class AITwoLevelCache:
         """禁用 L2（Redis 不可用时降级）"""
         self._l2_enabled = False
 
+    def _is_valid_result(self, result) -> bool:
+        """
+        判断结果是否有效可缓存
+        排除：None、空字符串、空列表、空字典、错误响应
+        """
+        import logging
+        logger = logging.getLogger("ai_cache")
+        
+        # 空值检查
+        if result is None:
+            logger.info("AI缓存: 结果为 None，不缓存")
+            return False
+        
+        # 空字符串检查
+        if isinstance(result, str) and not result.strip():
+            logger.info("AI缓存: 结果为空字符串，不缓存")
+            return False
+        
+        # 空列表/空字典检查
+        if isinstance(result, (list, tuple)) and len(result) == 0:
+            logger.info("AI缓存: 结果为空列表，不缓存")
+            return False
+        if isinstance(result, dict) and len(result) == 0:
+            logger.info("AI缓存: 结果为空字典，不缓存")
+            return False
+        
+        # 错误响应检查 - 检查常见错误标识
+        if isinstance(result, dict):
+            # 检查 UnifiedResponse 错误格式
+            if result.get("status") == 0:
+                logger.info(f"AI缓存: 结果为错误响应 (status=0)，不缓存: {result.get('messages', '')}")
+                return False
+            # 检查其他错误标识
+            if result.get("error") or result.get("failed") or result.get("code", 200) >= 400:
+                msg = result.get("msg") or result.get("message") or result.get("error", "")
+                logger.info(f"AI缓存: 结果包含错误标识，不缓存: {msg}")
+                return False
+            # 检查 AI 返回的错误数据（msg='xxx' 且没有有效数据）
+            if result.get("msg") and not result.get("data") and not result.get("datas"):
+                logger.info(f"AI缓存: AI 返回错误信息，不缓存: {result.get('msg')}")
+                return False
+        
+        # 列表中全是错误数据检查
+        if isinstance(result, list) and len(result) > 0:
+            # 检查 datas 列表中的错误响应
+            if all(isinstance(item, dict) and item.get("msg") and not item.get("data") for item in result):
+                logger.info("AI缓存: 列表中全是错误响应，不缓存")
+                return False
+        
+        return True
+
     def cached(self, ttl: int = 600):
         """装饰器：两级缓存异步函数结果"""
         def decorator(func):
             async def wrapper(*args, **kwargs):
+                import logging
+                logger = logging.getLogger("ai_cache")
+                
                 # L1 精确匹配
                 key = self.l1._make_key(func.__name__, *args, **kwargs)
                 result = self.l1.get(key)
                 if result is not None:
+                    logger.info(f"AI缓存: L1 命中 key={key[:16]}...")
                     return result
 
                 # L2 语义搜索
                 if self._l2_enabled and self.l2 is not None:
                     query = kwargs.get("query", args[0] if args else "")
-                    model = kwargs.get("model", "")
                     try:
-                        l2_result = await self.l2.search(query, model)
+                        l2_result = await self.l2.search(query)
                         if l2_result is not None:
+                            logger.info(f"AI缓存: L2 命中，回填 L1")
                             # 回填 L1
                             self.l1.set(key, l2_result, ttl)
                             return l2_result
                     except Exception as e:
-                        import logging
-                        logging.getLogger("ai_cache").warning(f"L2 语义缓存查询失败，降级为直连: {e}")
+                        logger.warning(f"AI缓存: L2 语义缓存查询失败，降级为直连: {e}")
                         self._l2_enabled = False
 
                 # 调用实际函数
-                result = await func(*args, **kwargs)
+                try:
+                    result = await func(*args, **kwargs)
+                except Exception as e:
+                    logger.error(f"AI缓存: 函数执行异常 {type(e).__name__}: {e}")
+                    raise  # 重新抛出异常，让调用方处理
+
+                # 检查结果是否有效可缓存
+                if not self._is_valid_result(result):
+                    logger.info("AI缓存: 结果无效，不写入缓存")
+                    return result
 
                 # 写入 L1
                 self.l1.set(key, result, ttl)
+                logger.info(f"AI缓存: 已写入 L1 (ttl={ttl}s)")
 
                 # 写入 L2
                 if self._l2_enabled and self.l2 is not None:
@@ -153,8 +217,9 @@ class AITwoLevelCache:
                         query = kwargs.get("query", args[0] if args else "")
                         model = kwargs.get("model", "")
                         await self.l2.store(query, model, result)
-                    except Exception:
-                        pass  # L2 写入失败不影响结果
+                        logger.info("AI缓存: 已写入 L2")
+                    except Exception as e:
+                        logger.warning(f"AI缓存: L2 写入失败: {e}")
 
                 return result
             wrapper.__name__ = func.__name__

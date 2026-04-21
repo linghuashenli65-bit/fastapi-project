@@ -28,8 +28,8 @@ async def agent_sql_api(req: QueryRequest):
 # 2. Agent调度
 # -------------------------------
 @router.post("/dispatch", summary="ai调度接口（测试）")
-def dispatch_api(req: QueryRequest):
-    data = dispatch_agent(req.query)
+async def dispatch_api(req: QueryRequest):
+    data = await dispatch_agent(req.query, req.model)
     return UnifiedResponse.success(datas=[data], messages="调度成功")
 
 
@@ -37,8 +37,8 @@ def dispatch_api(req: QueryRequest):
 # 3. SQL生成
 # -------------------------------
 @router.post("/generate", summary="sql生成接口（测试）")
-def generate_sql_api(req: QueryRequest):
-    sql = generate_sql(req.query)
+async def generate_sql_api(req: QueryRequest):
+    sql = await generate_sql(req.query, req.model)
     return UnifiedResponse.success(datas=[{"sql": sql}], messages="生成成功")
 
 
@@ -46,9 +46,9 @@ def generate_sql_api(req: QueryRequest):
 # 4. SQL执行
 # -------------------------------
 @router.post("/execute", summary="sql执行接口（测试）")
-def execute_sql_api(req: SQLRequest):
+async def execute_sql_api(req: SQLRequest):
     try:
-        data = execute_sql(req.sql)
+        data = await execute_sql(req.sql)
         return UnifiedResponse.success(datas=[data], messages="执行成功")
     except Exception as e:
         return UnifiedResponse.error(messages=str(e))

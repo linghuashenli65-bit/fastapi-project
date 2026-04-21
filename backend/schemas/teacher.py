@@ -23,8 +23,8 @@ class TeacherOut(BaseModel):
     id: int
     teacher_no: int
     name: str
-    gender: str = None
-    phone: str = None
-    title: str = None
+    gender: Optional[str] = None
+    phone: Optional[str] = None
+    title: Optional[str] = None
     class Config:
         from_attributes = True

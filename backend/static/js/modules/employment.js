@@ -1,5 +1,5 @@
 import { get, post, put, del } from '../api.js';
-import { showToast, serializeForm, createModal } from '../utils.js';
+import { showToast, serializeForm, createModal, renderPagination } from '../utils.js';
 import { DEFAULT_PAGE, DEFAULT_SIZE } from '../config.js';
 
 let currentPage = DEFAULT_PAGE;
@@ -52,7 +52,14 @@ async function fetchEmployments() {
     let total = data.pagination ? data.pagination.count : employments.length;
     employmentsCache = employments;
     renderEmploymentList(employments);
-    renderPagination(total);
+    renderPagination('pagination', {
+      currentPage,
+      totalPages: Math.ceil(total / currentSize),
+      total,
+      pageSize: currentSize,
+      onPageChange: (page) => { currentPage = page; fetchEmployments(); },
+      onSizeChange: (size) => { currentSize = size; currentPage = DEFAULT_PAGE; fetchEmployments(); }
+    });
   } catch (err) {
     console.error(err);
     listDiv.innerHTML = '<p style="color:red">加载失败，请检查网络</p>';
@@ -119,27 +126,6 @@ function renderEmploymentList(list) {
   });
   document.querySelectorAll('.delete-emp').forEach(btn => {
     btn.onclick = () => deleteEmployment(btn.dataset.id);
-  });
-}
-
-function renderPagination(total) {
-  const totalPages = Math.ceil(total / currentSize);
-  const pageDiv = document.getElementById('pagination');
-  if (totalPages <= 1) {
-    pageDiv.innerHTML = '';
-    return;
-  }
-  let btns = '';
-  for (let i = 1; i <= totalPages; i++) {
-    const activeClass = i === currentPage ? 'active' : '';
-    btns += `<button class="btn btn-secondary page-btn ${activeClass}" data-page="${i}">${i}</button>`;
-  }
-  pageDiv.innerHTML = btns;
-  document.querySelectorAll('.page-btn').forEach(btn => {
-    btn.onclick = () => {
-      currentPage = parseInt(btn.dataset.page);
-      fetchEmployments();
-    };
   });
 }
 

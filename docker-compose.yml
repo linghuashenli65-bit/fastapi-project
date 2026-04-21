@@ -3,12 +3,11 @@ version: '3.8'
 services:
   # MySQL 数据库
   mysql:
-    image: mysql:5.7
+    image: mysql:8.0
     container_name: student_management_db
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
     ports:
       - "${DB_PORT:-3306}:3306"
     volumes:
@@ -21,6 +20,41 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+
+  # Redis (L1 缓存)
+  redis:
+    image: redis:7-alpine
+    container_name: student_management_redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis Stack (L2 语义缓存，支持向量搜索)
+  redis-stack:
+    image: redis/redis-stack-server:latest
+    container_name: student_management_redis_stack
+    ports:
+      - "${REDIS_STACK_PORT:-6380}:6379"
+    volumes:
+      - redis_stack_data:/data
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   # FastAPI 后端
   backend:
@@ -31,7 +65,7 @@ services:
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     environment:
-      DB_HOST: mysql
+      DB_HOST: host.docker.internal
       DB_PORT: 3306
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -42,17 +76,30 @@ services:
       BACKEND_HOST: 0.0.0.0
       BACKEND_PORT: 8000
       FRONTEND_API_BASE: ${FRONTEND_API_BASE}
+      # 缓存配置
+      CACHE_TYPE: ${CACHE_TYPE:-redis}
+      CACHE_REDIS_URL: redis://redis:6379/0
+      # Redis Stack 语义缓存配置
+      REDIS_STACK_URL: redis://redis-stack:6379
+      SEMANTIC_CACHE_ENABLED: ${SEMANTIC_CACHE_ENABLED:-true}
+      SEMANTIC_CACHE_THRESHOLD: ${SEMANTIC_CACHE_THRESHOLD:-0.85}
+      SEMANTIC_CACHE_TTL: ${SEMANTIC_CACHE_TTL:-3600}
     volumes:
       - ./backend:/app/backend
       - ./.env:/app/.env
+      - ./logs:/app/logs
     depends_on:
       mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redis-stack:
         condition: service_healthy
     networks:
       - app_network
     restart: unless-stopped
 
-  # Nginx 反向代理（可选）
+  # Nginx 反向代理
   nginx:
     image: nginx:alpine
     container_name: student_management_nginx
@@ -60,7 +107,7 @@ services:
       - "80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./backend/static:/usr/share/nginx/html/static:ro
+      - ./backend/static:/usr/share/nginx/html/static
     depends_on:
       - backend
     networks:
@@ -69,6 +116,10 @@ services:
 
 volumes:
   mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  redis_stack_data:
     driver: local
 
 networks:

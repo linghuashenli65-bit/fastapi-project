@@ -1,5 +1,5 @@
 import { get, post, put, del } from '../api.js';
-import { showToast, serializeForm, createModal } from '../utils.js';
+import { showToast, serializeForm, createModal, renderPagination } from '../utils.js';
 import { DEFAULT_PAGE, DEFAULT_SIZE } from '../config.js';
 
 let currentPage = DEFAULT_PAGE;
@@ -48,7 +48,14 @@ async function fetchTeachers() {
     teachersCache = data.datas || [];
     const total = data.pagination ? data.pagination.count : teachersCache.length;
     renderTeacherTable(teachersCache);
-    renderPagination(total);
+    renderPagination('pagination', {
+      currentPage,
+      totalPages: Math.ceil(total / currentSize),
+      total,
+      pageSize: currentSize,
+      onPageChange: (page) => { currentPage = page; fetchTeachers(); },
+      onSizeChange: (size) => { currentSize = size; currentPage = DEFAULT_PAGE; fetchTeachers(); }
+    });
   } catch (err) {
     console.error('获取教师列表失败:', err);
     showToast('获取教师列表失败', 'error');
@@ -97,27 +104,6 @@ function renderTeacherTable(teachers) {
   });
   document.querySelectorAll('.delete-teacher').forEach(btn => {
     btn.onclick = () => deleteTeacher(btn.dataset.id);
-  });
-}
-
-function renderPagination(total) {
-  const totalPages = Math.ceil(total / currentSize);
-  const pageDiv = document.getElementById('pagination');
-  if (totalPages <= 1) {
-    pageDiv.innerHTML = '';
-    return;
-  }
-  let btns = '';
-  for (let i = 1; i <= totalPages; i++) {
-    const activeClass = i === currentPage ? 'active' : '';
-    btns += `<button class="btn btn-secondary page-btn ${activeClass}" data-page="${i}">${i}</button>`;
-  }
-  pageDiv.innerHTML = btns;
-  document.querySelectorAll('.page-btn').forEach(btn => {
-    btn.onclick = () => {
-      currentPage = parseInt(btn.dataset.page);
-      fetchTeachers();
-    };
   });
 }
 

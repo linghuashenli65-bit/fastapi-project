@@ -1,6 +1,7 @@
 from .agent import split_tasks, generate_sql, ai_choose_chart_type, generate_analysis
 from .llm import call_qwen, call_deepseek
 from backend.repositories.sql_service import execute_sql
+from backend.utils.helpers import ai_two_level_cache
 from decimal import Decimal
 import json
 
@@ -61,6 +62,19 @@ def build_chart(data: list, title: str, chart_type: str = "bar") -> dict:
 
 
 async def build_dashboard(query: str, model: str = "qwen", analysis_length: str = "medium"):
+    # 尝试从缓存获取完整结果
+    cached_result = await _get_dashboard_cache(query, model, analysis_length)
+    if cached_result is not None:
+        # 缓存命中：快速推送进度 + 直接返回完整结果
+        yield {"stage": "cache_hit", "percent": 0, "message": "检测到相似查询，正在加载缓存结果..."}
+        yield {"stage": "cache_hit", "percent": 50, "message": "加载缓存中..."}
+        yield {
+            "stage": "complete", "percent": 100, "message": "分析完成（缓存命中）",
+            "analysis": cached_result.get("analysis", ""),
+            "charts": cached_result.get("charts", [])
+        }
+        return
+
     # 1. 任务分解 (0% -> 10%)
     yield {"stage": "split", "percent": 0, "message": "正在分析问题并分解任务..."}
     tasks = await split_tasks(query, model)
@@ -179,4 +193,36 @@ async def build_dashboard(query: str, model: str = "qwen", analysis_length: str 
     # 3. 生成分析结论 (85% -> 100%)
     yield {"stage": "analysis", "percent": 85, "message": "正在生成综合分析报告..."}
     analysis = await generate_analysis(charts, model, analysis_length)
+
+    # 写入语义缓存
+    await _set_dashboard_cache(query, model, analysis_length, {
+        "analysis": analysis,
+        "charts": charts
+    })
+
     yield {"stage": "complete", "percent": 100, "message": "分析完成", "analysis": analysis, "charts": charts}
+
+
+async def _get_dashboard_cache(query: str, model: str, analysis_length: str) -> dict | None:
+    """从语义缓存获取 dashboard 结果"""
+    try:
+        from backend.services.semantic_cache import semantic_cache
+        if not semantic_cache._initialized:
+            return None
+        # 将 analysis_length 纳入查询上下文
+        cache_query = f"[dashboard:{analysis_length}] {query}"
+        return await semantic_cache.search(cache_query)
+    except Exception:
+        return None
+
+
+async def _set_dashboard_cache(query: str, model: str, analysis_length: str, result: dict):
+    """将 dashboard 结果写入语义缓存"""
+    try:
+        from backend.services.semantic_cache import semantic_cache
+        if not semantic_cache._initialized:
+            return
+        cache_query = f"[dashboard:{analysis_length}] {query}"
+        await semantic_cache.store(cache_query, model, result)
+    except Exception:
+        pass

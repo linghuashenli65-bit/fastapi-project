@@ -1,9 +1,8 @@
 """
 用户管理 API - 管理员功能
 """
-from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_cache.decorator import cache
 
@@ -22,15 +21,20 @@ router = APIRouter(prefix="/admin/users", tags=["用户管理"])
 @router.get("")
 @cache(expire=settings.CACHE_LIST_EXPIRE, key_builder=cache_key_builder)
 async def get_all_users(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
+    page: int = Query(1, ge=1),
+    size: int = Query(10, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_superuser)
 ):
-    """获取所有用户列表（仅管理员）"""
-    result = await db.execute(select(User).offset(skip).limit(limit))
+    """获取所有用户列表（仅管理员，分页）"""
+    # 查询总数
+    count_result = await db.execute(select(func.count()).select_from(User))
+    count = count_result.scalar() or 0
+    # 分页查询
+    skip = (page - 1) * size
+    result = await db.execute(select(User).offset(skip).limit(size))
     users = result.scalars().all()
-    return UnifiedResponse.success(datas=users, messages="查询成功")
+    return UnifiedResponse.success(datas=users, messages="查询成功", count=count, page=page, page_size=size)
 
 
 @router.get("/{user_id}")

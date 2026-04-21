@@ -1,5 +1,5 @@
 import { get, post, put, del } from '../api.js';
-import { showToast, serializeForm, createModal } from '../utils.js';
+import { showToast, serializeForm, createModal, renderPagination } from '../utils.js';
 import { DEFAULT_PAGE, DEFAULT_SIZE } from '../config.js';
 
 let currentPage = DEFAULT_PAGE;
@@ -30,8 +30,8 @@ export async function render(container) {
 async function fetchUsers() {
     try {
         const params = new URLSearchParams({
-            skip: (currentPage - 1) * currentSize,
-            limit: currentSize * 5
+            page: currentPage,
+            size: currentSize
         });
         const data = await get(`/admin/users?${params.toString()}`);
         
@@ -40,7 +40,14 @@ async function fetchUsers() {
         const count = data.pagination ? data.pagination.count : users.length;
         
         renderUserTable(users);
-        renderPagination(count);
+        renderPagination('pagination', {
+            currentPage,
+            totalPages: Math.ceil(count / currentSize),
+            total: count,
+            pageSize: currentSize,
+            onPageChange: (page) => { currentPage = page; fetchUsers(); },
+            onSizeChange: (size) => { currentSize = size; currentPage = DEFAULT_PAGE; fetchUsers(); }
+        });
     } catch (err) {
         console.error('获取用户列表失败:', err);
         showToast('获取用户列表失败', 'error');
@@ -125,32 +132,6 @@ function renderUserTable(users) {
     });
     container.querySelectorAll('.btn-delete').forEach(btn => {
         btn.onclick = () => deleteUser(parseInt(btn.dataset.id));
-    });
-}
-
-function renderPagination(totalCount) {
-    const totalPages = Math.ceil(totalCount / currentSize);
-    const container = document.getElementById('pagination');
-    if (totalPages <= 1) {
-        container.innerHTML = '';
-        return;
-    }
-
-    let html = '';
-    html += `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} data-page="${currentPage - 1}">上一页</button>`;
-    
-    for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
-        html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
-    }
-    
-    html += `<button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} data-page="${currentPage + 1}">下一页</button>`;
-    container.innerHTML = html;
-
-    container.querySelectorAll('.page-btn:not([disabled])').forEach(btn => {
-        btn.onclick = () => {
-            currentPage = parseInt(btn.dataset.page);
-            fetchUsers();
-        };
     });
 }
 

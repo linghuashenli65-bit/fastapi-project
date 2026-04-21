@@ -82,7 +82,7 @@ export const DEFAULT_SIZE = 10;
 
     app_logger.info("=" * 50)
     app_logger.info("学生管理系统启动中...")
-    app_logger.info("版本: 1.0.0")
+    app_logger.info("版本: 1.3.1")
     app_logger.info(f"API 文档: http://{settings.BACKEND_HOST}:{settings.BACKEND_PORT}/docs")
     app_logger.info("=" * 50)
 
@@ -130,7 +130,7 @@ app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(ValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, general_exception_handler)
 
-# 注册中间件
+# 注册日志中间件
 app.add_middleware(LoggingMiddleware)
 
 # 注册路由

@@ -1,5 +1,5 @@
 import { get, post, put, del } from '../api.js';
-import { showToast, serializeForm, createModal } from '../utils.js';
+import { showToast, serializeForm, createModal, renderPagination } from '../utils.js';
 import { DEFAULT_PAGE, DEFAULT_SIZE } from '../config.js';
 
 let currentPage = DEFAULT_PAGE;
@@ -68,7 +68,14 @@ async function fetchScores() {
         const scores = data.datas || [];
         const total = data.pagination ? data.pagination.count : scores.length;
         renderScoreTable(scores);
-        renderPagination(total);
+        renderPagination('pagination', {
+            currentPage,
+            totalPages: Math.ceil(total / currentSize),
+            total,
+            pageSize: currentSize,
+            onPageChange: (page) => { currentPage = page; fetchScores(); },
+            onSizeChange: (size) => { currentSize = size; currentPage = DEFAULT_PAGE; fetchScores(); }
+        });
     } catch (err) {
         showToast('获取成绩列表失败', 'error');
     }
@@ -122,39 +129,6 @@ function renderScoreTable(scores) {
         btn.onclick = () => deleteScore(btn.dataset.id);
     });
 }
-
-function renderPagination(total) {
-    const container = document.getElementById('pagination');
-    const totalPages = Math.ceil(total / currentSize);
-    if (totalPages <= 1) {
-        container.innerHTML = '';
-        return;
-    }
-
-    let html = `<span>共 ${total} 条</span> `;
-    html += `<button ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">上一页</button> `;
-
-    // 显示页码
-    const startPage = Math.max(1, currentPage - 2);
-    const endPage = Math.min(totalPages, currentPage + 2);
-
-    for (let i = startPage; i <= endPage; i++) {
-        if (i === currentPage) {
-            html += `<button class="active">${i}</button> `;
-        } else {
-            html += `<button onclick="changePage(${i})">${i}</button> `;
-        }
-    }
-
-    html += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">下一页</button>`;
-    container.innerHTML = html;
-}
-
-// 全局函数供HTML中的onclick调用
-window.changePage = (page) => {
-    currentPage = page;
-    fetchScores();
-};
 
 function showAddModal() {
     const modal = createModal(`

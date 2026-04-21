@@ -1,10 +1,11 @@
 """
 Embedding 服务：使用本地 sentence-transformers 模型生成文本向量
 """
+import os
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-from backend.core.config import settings
+from backend.core.config import settings, PROJECT_ROOT
 from backend.core.logger import get_logger
 
 logger = get_logger("embedding")
@@ -17,9 +18,21 @@ def _get_model() -> SentenceTransformer:
     """懒加载 Embedding 模型"""
     global _model
     if _model is None:
+        # 优先使用本地模型路径
+        local_path = settings.EMBEDDING_MODEL_PATH
         model_name = settings.EMBEDDING_MODEL_NAME
-        logger.info(f"正在加载 Embedding 模型: {model_name}")
-        _model = SentenceTransformer(model_name)
+        
+        if local_path and os.path.exists(local_path):
+            logger.info(f"正在加载本地 Embedding 模型: {local_path}")
+            _model = SentenceTransformer(local_path)
+        elif local_path and os.path.exists(os.path.join(PROJECT_ROOT, local_path)):
+            full_path = os.path.join(PROJECT_ROOT, local_path)
+            logger.info(f"正在加载本地 Embedding 模型: {full_path}")
+            _model = SentenceTransformer(full_path)
+        else:
+            logger.info(f"正在加载 Embedding 模型: {model_name}")
+            _model = SentenceTransformer(model_name)
+        
         logger.info(f"Embedding 模型加载完成, 向量维度: {_model.get_embedding_dimension()}")
     return _model
 

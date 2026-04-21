@@ -1,55 +1,53 @@
 # FastAPI
-fastapi==0.136.0
-uvicorn[standard]==0.24.0
-gunicorn==21.2.0
+fastapi>=0.115.0,<0.116.0
+uvicorn[standard]>=0.34.0
+gunicorn>=23.0.0
 
 # Cache
-fastapi-cache2[redis]==0.2.2
-redis>=5.0.0
+fastapi-cache2>=0.2.2
+redis[hiredis]>=5.0.0
 
 # Embedding (语义缓存)
 sentence-transformers>=2.6.0
+numpy>=1.24.0
 
 # Database
-sqlalchemy==2.0.30
+sqlalchemy>=2.0.30,<2.1
 asyncmy==0.2.9
-pymysql==1.1.0
+pymysql>=1.1.0
 aiomysql==0.2.0
+aiosqlite>=0.20.0
 
-# Validation
-pydantic==2.13.1
-pydantic-settings==2.1.0
-email-validator==2.1.2
+# Validation (pydantic 版本受 fastapi-users 约束)
+pydantic>=2.7.0,<2.10.0
+pydantic-settings>=2.1.0
+email-validator>=1.1.0,<2.2
 
 # HTTP Client
-httpx==0.25.2
-aiohttp==3.9.5
+httpx>=0.28.0
 
 # Utilities
-python-multipart==0.0.9
+python-multipart>=0.0.9
 python-jose[cryptography]==3.3.0
-# passlib replaced by pwdlib
-pwdlib[argon2,bcrypt]==0.2.0
-python-dotenv==1.0.0
+pwdlib[argon2,bcrypt]>=0.2.0
+python-dotenv>=1.0.0
 makefun==1.16.0
 typing-inspection>=0.4.2
-annotated-doc==0.0.4
 
 # Logging
-loguru==0.7.2
+loguru>=0.7.2
 
 # User Authentication
 fastapi-users==13.0.0
 fastapi-users-db-sqlalchemy==7.0.0
-pyjwt[crypto]==2.8.0
+pyjwt[crypto]>=2.8.0
 
 # Testing
-pytest==7.4.3
-pytest-asyncio==0.21.1
-httpx==0.25.2
+pytest>=8.0.0
+pytest-asyncio>=0.24.0
 
 # Development
-black==23.12.0
-isort==5.12.0
-flake8==6.1.0
-mypy==1.7.1
+black>=24.0.0
+isort>=5.12.0
+flake8>=7.0.0
+mypy>=1.7.0

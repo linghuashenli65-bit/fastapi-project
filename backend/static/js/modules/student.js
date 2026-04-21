@@ -1,5 +1,5 @@
 import { get, post, put, del } from '../api.js';
-import { showToast, serializeForm, createModal } from '../utils.js';
+import { showToast, serializeForm, createModal, renderPagination } from '../utils.js';
 import { DEFAULT_PAGE, DEFAULT_SIZE } from '../config.js';
 
 let currentPage = DEFAULT_PAGE;
@@ -43,7 +43,14 @@ async function fetchStudents() {
         const students = data.datas || [];
         const total = data.pagination ? data.pagination.count : (data.datas || []).length;
         renderStudentTable(students);
-        renderPagination(total);
+        renderPagination('pagination', {
+            currentPage,
+            totalPages: Math.ceil(total / currentSize),
+            total,
+            pageSize: currentSize,
+            onPageChange: (page) => { currentPage = page; fetchStudents(); },
+            onSizeChange: (size) => { currentSize = size; currentPage = 1; fetchStudents(); }
+        });
     } catch (err) {
         showToast('获取学生列表失败', 'error');
     }
@@ -103,28 +110,16 @@ function formatEducation(edu) {
     return map[edu] || edu || '';
 }
 
-function renderPagination(total) {
-    const totalPages = Math.ceil(total / currentSize);
-    const pageDiv = document.getElementById('pagination');
-    if (totalPages <= 1) {
-        pageDiv.innerHTML = '';
-        return;
-    }
-    let btns = '';
-    for (let i = 1; i <= totalPages; i++) {
-        const activeClass = i === currentPage ? 'active' : '';
-        btns += `<button class="btn btn-secondary page-btn ${activeClass}" data-page="${i}">${i}</button>`;
-    }
-    pageDiv.innerHTML = btns;
-    document.querySelectorAll('.page-btn').forEach(btn => {
-        btn.onclick = () => {
-            currentPage = parseInt(btn.dataset.page);
-            fetchStudents();
-        };
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function (m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
     });
 }
 
-// 新增学生
 function showAddModal() {
     const formHtml = `
         <form id="student-form">
@@ -271,15 +266,4 @@ async function queryStudentByNo() {
     } catch (err) {
         document.getElementById('student-detail').innerHTML = '<p style="color:red">未找到学生</p>';
     }
-}
-
-// 简单的转义函数（如果全局没有，可以自己定义）
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function (m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
 }

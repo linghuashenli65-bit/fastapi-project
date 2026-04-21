@@ -334,7 +334,7 @@ async def agent_sql(query: str, model: str = ""):
         return {"code": 500, "msg": str(e), "sql": sql, "data": []}
 
 
-def dispatch_agent(query: str,model="qwen"):
-    result = agent_sql(query,model)
+async def dispatch_agent(query: str, model: str = "qwen"):
+    result = await agent_sql(query, model)
 
     return {"code": 200, "action": "sql_query", "result": result}

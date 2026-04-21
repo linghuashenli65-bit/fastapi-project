@@ -16,7 +16,7 @@ class ClassRepo(BaseCRUD[Class, ClassCreate, ClassUpdate]):
         super().__init__(Class)
 
     @staticmethod
-    async def get_all(db: AsyncSession, skip: int = 0, limit: int = 100):
+    async def get_all(db: AsyncSession, skip: int = 0, limit: int = 100, name: str = None):
         # 子查询：统计每个班级的当前学生人数
         student_count_subq = select(
             Student_Class.class_no,
@@ -36,13 +36,20 @@ class ClassRepo(BaseCRUD[Class, ClassCreate, ClassUpdate]):
             student_count_subq, Class.class_no == student_count_subq.c.class_no
         ).where(
             Class.deleted_at == '1900-01-01 00:00:00'
-        ).offset(skip).limit(limit)
+        )
+
+        # 按班级名称模糊搜索
+        if name:
+            stmt = stmt.where(Class.class_name.like(f"%{name}%"))
+
+        stmt = stmt.offset(skip).limit(limit)
 
         result = await db.execute(stmt)
         rows = result.all()
         class_list = []
         for cls, count in rows:
             class_list.append({
+                "id": cls.id,
                 "class_no": cls.class_no,
                 "class_name": cls.class_name,
                 "start_date": cls.start_date,
@@ -50,6 +57,14 @@ class ClassRepo(BaseCRUD[Class, ClassCreate, ClassUpdate]):
             })
 
         return class_list
+
+    @staticmethod
+    async def count(db: AsyncSession, name: str = None):
+        stmt = select(func.count()).select_from(Class).where(Class.deleted_at == '1900-01-01 00:00:00')
+        if name:
+            stmt = stmt.where(Class.class_name.like(f"%{name}%"))
+        result = await db.execute(stmt)
+        return result.scalar() or 0
 
     @staticmethod
     async def get_student(class_no: int, db: AsyncSession):

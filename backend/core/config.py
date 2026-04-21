@@ -68,14 +68,19 @@ class Settings(BaseSettings):
     CACHE_AI_EXPIRE: int = Field(default=600, description="AI查询缓存过期时间(秒)")
 
     # Redis Stack 语义缓存配置
-    REDIS_STACK_URL: str = Field(default="redis://localhost:6379", description="Redis Stack连接地址")
+    REDIS_STACK_URL: str = Field(default="redis://localhost:6380", description="Redis Stack连接地址")
     SEMANTIC_CACHE_ENABLED: bool = Field(default=True, description="是否启用语义缓存")
     SEMANTIC_CACHE_TTL: int = Field(default=3600, description="语义缓存过期时间(秒)")
     SEMANTIC_CACHE_THRESHOLD: float = Field(default=0.85, description="语义相似度阈值(0-1)")
     SEMANTIC_CACHE_TOP_K: int = Field(default=3, description="语义搜索返回最相似的前K条")
+    # Embedding 模型配置
     EMBEDDING_MODEL_NAME: str = Field(
         default="shibing624/text2vec-base-chinese",
-        description="本地Embedding模型名称(HuggingFace)"
+        description="Embedding模型名称"
+    )
+    EMBEDDING_MODEL_PATH: str = Field(
+        default="",
+        description="本地Embedding模型路径（优先使用本地路径）"
     )
 
     # 生成数据库 URL

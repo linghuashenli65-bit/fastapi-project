@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, case
 from typing import Dict, Any, Optional
 from backend.models.score import Score
 from backend.models.student import Student
@@ -181,7 +181,7 @@ class ScoreRepo(BaseCRUD[Score, ScoreCreate, ScoreUpdate]):
                 func.avg(Score.score).label("average_score"),
                 func.max(Score.score).label("highest_score"),
                 func.min(Score.score).label("lowest_score"),
-                func.sum(func.case((Score.score >= 60, 1), else_=0)).label("pass_count")
+                func.sum(case((Score.score >= 60, 1), else_=0)).label("pass_count")
             )
             .where(Score.class_no == class_no)
         )
@@ -214,7 +214,7 @@ class ScoreRepo(BaseCRUD[Score, ScoreCreate, ScoreUpdate]):
                 func.avg(Score.score).label("average_score"),
                 func.max(Score.score).label("highest_score"),
                 func.min(Score.score).label("lowest_score"),
-                func.sum(func.case((Score.score >= 60, 1), else_=0)).label("pass_count")
+                func.sum(case((Score.score >= 60, 1), else_=0)).label("pass_count")
             )
             .where(Score.student_no == student_no)
         )

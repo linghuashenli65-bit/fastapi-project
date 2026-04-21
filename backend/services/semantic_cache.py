@@ -9,19 +9,36 @@
 """
 import time
 import uuid
+from datetime import date, datetime
 from typing import Any, Optional
 
 import numpy as np
 import redis.asyncio as aioredis
-from redis.commands.search.field import TextField, VectorField, NumericField, TagField
-from redis.commands.search.index_definition import IndexDefinition, IndexType
-from redis.commands.search.query import Query
 
 from backend.core.config import settings
 from backend.core.logger import get_logger
 from backend.services.embedding import get_embedding, get_embedding_dim
 
 logger = get_logger("semantic_cache")
+
+
+def _serialize_for_json(obj: Any) -> Any:
+    """
+    递归序列化对象以适配 JSON，包含：
+    - datetime/date 转换为 ISO 字符串
+    - bytes 转换为 base64 字符串
+    - 递归处理 dict/list/tuple
+    """
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    elif isinstance(obj, bytes):
+        return obj.decode("utf-8", errors="replace")
+    elif isinstance(obj, dict):
+        return {k: _serialize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [_serialize_for_json(item) for item in obj]
+    else:
+        return obj
 
 
 class SemanticCache:
@@ -52,6 +69,9 @@ class SemanticCache:
 
     async def _create_index(self):
         """创建搜索索引（如果不存在）"""
+        from redis.commands.search.field import TextField, VectorField, NumericField, TagField
+        from redis.commands.search.index_definition import IndexDefinition, IndexType
+
         try:
             # 检查索引是否已存在
             await self.redis.ft(self.INDEX_NAME).info()
@@ -85,13 +105,16 @@ class SemanticCache:
             )
             logger.info(f"SemanticCache: 索引创建成功 (dim={dim})")
         except Exception as e:
+            err_msg = str(e)
+            if "already exists" in err_msg:
+                logger.info(f"SemanticCache: 索引 {self.INDEX_NAME} 已存在（并发创建）")
+                return
             logger.error(f"SemanticCache: 索引创建失败 - {e}")
             raise
 
     async def search(
         self,
         query: str,
-        model: str,
         threshold: float | None = None,
     ) -> Optional[dict]:
         """
@@ -99,7 +122,6 @@ class SemanticCache:
 
         Args:
             query: 用户查询文本
-            model: 使用的模型名称（用于过滤）
             threshold: 相似度阈值，None 则使用配置值
 
         Returns:
@@ -112,16 +134,14 @@ class SemanticCache:
         top_k = settings.SEMANTIC_CACHE_TOP_K
 
         try:
+            from redis.commands.search.query import Query
+
             # 生成查询向量
             query_vector = get_embedding(query)
             vector_bytes = np.array(query_vector, dtype=np.float32).tobytes()
 
-            # 构建搜索查询：KNN 搜索 + model 过滤
-            if model:
-                filter_clause = f"@model:{{{model}}}"
-            else:
-                filter_clause = "*"
-            base_query = f"({filter_clause})=>[KNN {top_k} @query_vector $vec AS score]"
+            # 构建搜索查询：KNN 搜索（不按模型过滤，不同模型共享缓存）
+            base_query = f"*=>[KNN {top_k} @query_vector $vec AS score]"
             q = Query(base_query).sort_by("score").dialect(2)
 
             results = await self.redis.ft(self.INDEX_NAME).search(
@@ -201,11 +221,14 @@ class SemanticCache:
             # 生成唯一 key
             doc_key = f"{self.PREFIX}{uuid.uuid4().hex}"
 
+            # 序列化结果（处理 date/datetime 等不可 JSON 序列化的类型）
+            serialized_result = _serialize_for_json(result)
+
             # 存储为 Redis JSON
             doc = {
                 "query": query,
                 "query_vector": query_vector,
-                "result": result,
+                "result": serialized_result,
                 "model": model,
                 "created_at": time.time(),
                 "ttl": ttl,

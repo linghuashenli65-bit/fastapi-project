@@ -1,5 +1,5 @@
 import { get, post, put, del } from '../api.js';
-import { showToast, serializeForm, createModal } from '../utils.js';
+import { showToast, serializeForm, createModal, renderPagination } from '../utils.js';
 import { DEFAULT_PAGE, DEFAULT_SIZE } from '../config.js';
 
 let currentPage = DEFAULT_PAGE;
@@ -48,7 +48,14 @@ async function fetchClasses() {
     let total = data.pagination ? data.pagination.count : classes.length;
     classesCache = classes;
     renderClassList(classes);
-    renderPagination(total);
+    renderPagination('pagination', {
+      currentPage,
+      totalPages: Math.ceil(total / currentSize),
+      total,
+      pageSize: currentSize,
+      onPageChange: (page) => { currentPage = page; fetchClasses(); },
+      onSizeChange: (size) => { currentSize = size; currentPage = DEFAULT_PAGE; fetchClasses(); }
+    });
   } catch (err) {
     console.error(err);
     listDiv.innerHTML = '<p style="color:red">加载失败，请检查网络</p>';
@@ -111,38 +118,6 @@ function renderClassList(classes) {
     btn.onclick = () => deleteClass(btn.dataset.no);
   });
 }
-
-function renderPagination(total) {
-  const totalPages = Math.ceil(total / currentSize);
-  const pageDiv = document.getElementById('pagination');
-  if (totalPages <= 1) {
-    pageDiv.innerHTML = '';
-    return;
-  }
-  let html = `<span>共 ${total} 条</span> `;
-  html += `<button ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">上一页</button> `;
-
-  // 显示页码
-  const startPage = Math.max(1, currentPage - 2);
-  const endPage = Math.min(totalPages, currentPage + 2);
-
-  for (let i = startPage; i <= endPage; i++) {
-    if (i === currentPage) {
-      html += `<button class="active">${i}</button> `;
-    } else {
-      html += `<button onclick="changePage(${i})">${i}</button> `;
-    }
-  }
-
-  html += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">下一页</button>`;
-  pageDiv.innerHTML = html;
-}
-
-// 全局函数供HTML中的onclick调用
-window.changePage = (page) => {
-  currentPage = page;
-  fetchClasses();
-};
 
 async function showClassMembers(classNo) {
   try {

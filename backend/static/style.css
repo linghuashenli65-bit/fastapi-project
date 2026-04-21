@@ -194,12 +194,81 @@ body {
   align-items: flex-end;
 }
 
-/* 分页 */
+/* 分页控件容器 */
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* 分页按钮组 */
+.pagination-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+/* 通用分页按钮 */
+.page-btn {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 6px 12px;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not([disabled]) {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.page-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 当前页高亮 */
+.page-btn.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+}
+
+/* 页码跳转输入框 */
+.page-jump {
+  width: 60px;
+  text-align: center;
+  padding: 4px 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+
+/* 每页条数下拉框 */
+.page-size-select {
+  padding: 6px 8px;
+  border-radius: 20px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* 兼容旧类名 */
 .pagination {
   display: flex;
-  justify-content: center;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
   margin-top: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 /* 弹窗 */

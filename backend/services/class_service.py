@@ -14,12 +14,14 @@ class ClassService:
     async def get_paginated_classes(
         self, 
         db: AsyncSession, 
-        skip: int = 0, 
-        limit: int = 100
+        page: int = 1, 
+        size: int = 10,
+        name: Optional[str] = None
     ) -> dict:
         """分页获取班级列表"""
-        count = await self.repo.count(db)
-        lst = await self.repo.get_all(db, skip=skip, limit=limit)
+        skip = (page - 1) * size
+        count = await self.repo.count(db, name=name)
+        lst = await self.repo.get_all(db, skip=skip, limit=size, name=name)
         return {"count": count, "data": lst}
     
     async def create_class(self, db: AsyncSession, class_in: ClassCreate) -> Class:

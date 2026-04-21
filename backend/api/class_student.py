@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_cache.decorator import cache
 
@@ -14,13 +14,20 @@ router = APIRouter()
 
 @router.get("/", summary="分页获得班级列表，按班级姓名模糊查找（可选）")
 @cache(expire=settings.CACHE_LIST_EXPIRE, key_builder=cache_key_builder)
-async def get_classes(db: AsyncSession = Depends(get_async_db), skip: int = 0, limit: int = 100):
+async def get_classes(
+    page: int = Query(1, ge=1),
+    size: int = Query(10, ge=1, le=100),
+    name: str = Query(None),
+    db: AsyncSession = Depends(get_async_db)
+):
     """获取班级分页列表"""
-    result = await class_service.get_paginated_classes(db, skip=skip, limit=limit)
+    result = await class_service.get_paginated_classes(db, page=page, size=size, name=name)
     return UnifiedResponse.success(
         datas=result["data"],
         messages="查询成功",
         count=result["count"],
+        page=page,
+        page_size=size,
     )
 
 

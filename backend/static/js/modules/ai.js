@@ -99,15 +99,30 @@ export async function render(container) {
             const res = await post('/agent/sql', { query, model });
             // 统一响应格式：res = { datas, pagination, messages }
             const data = res.datas && res.datas[0] ? res.datas[0] : {};
+            
+            // 检查后端返回的错误信息
+            if (res.messages && res.messages.length > 0) {
+                const errorMsg = res.messages.join('；');
+                resultDiv.innerHTML = `
+                    <div style="background:#fee2e2; padding:12px; border-radius:8px; color:#991b1b;">
+                        <strong>❌ 后端错误</strong><br>
+                        ${escapeHtml(errorMsg)}
+                    </div>
+                `;
+                showToast('查询失败: ' + errorMsg, 'error');
+                return;
+            }
+            
             // 检查是否查询失败（datas中可能包含错误信息）
             if (data.msg && !data.data) {
                 resultDiv.innerHTML = `
                     <div style="background:#fee2e2; padding:12px; border-radius:8px; color:#991b1b;">
                         <strong>❌ 查询失败</strong><br>
                         错误信息：${escapeHtml(data.msg || '未知错误')}<br>
-                        SQL语句：<pre style="background:#f1f5f9; padding:8px; border-radius:4px; overflow-x:auto;">${escapeHtml(data.sql || '')}</pre>
+                        ${data.sql ? `SQL语句：<pre style="background:#f1f5f9; padding:8px; border-radius:4px; overflow-x:auto;">${escapeHtml(data.sql)}</pre>` : ''}
                     </div>
                 `;
+                showToast('查询失败: ' + (data.msg || '未知错误'), 'error');
                 return;
             }
 
@@ -121,7 +136,22 @@ export async function render(container) {
 
             resultDiv.innerHTML = html;
         } catch (err) {
-            resultDiv.innerHTML = `<div style="background:#fee2e2; padding:12px; border-radius:8px; color:#991b1b;">❌ 错误：${escapeHtml(err.message)}</div>`;
+            console.error('AI查询失败:', err);
+            // 提取有意义的错误信息
+            let errorMsg = err.message || '未知错误';
+            if (errorMsg.includes('Network Error') || errorMsg.includes('fetch')) {
+                errorMsg = '网络连接失败，请检查网络和代理设置';
+            } else if (errorMsg.includes('timeout') || errorMsg.includes('Timeout')) {
+                errorMsg = '请求超时，请重试';
+            }
+            
+            resultDiv.innerHTML = `
+                <div style="background:#fee2e2; padding:12px; border-radius:8px; color:#991b1b;">
+                    <strong>❌ 请求失败</strong><br>
+                    ${escapeHtml(errorMsg)}
+                </div>
+            `;
+            showToast('查询失败: ' + errorMsg, 'error');
         }
     };
 
