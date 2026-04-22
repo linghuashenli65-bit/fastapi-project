@@ -105,4 +105,12 @@ frontend/.cache/
 # Project specific
 copy_models.py
 test_imports.py
-models/text2vec-base-chinese/  
+models/text2vec-base-chinese/
+
+# Large model files
+models/**/*.safetensors
+models/**/*.bin
+models/**/*.onnx
+models/**/*.pt
+models/**/*.pth
+models/**/*.gguf  
