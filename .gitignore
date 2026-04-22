@@ -105,3 +105,4 @@ frontend/.cache/
 # Project specific
 copy_models.py
 test_imports.py
+models/text2vec-base-chinese/  
