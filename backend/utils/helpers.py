@@ -11,9 +11,19 @@ def clean_ai_response(text: str) -> str:
     if not text:
         return ""
     text = text.strip()
-    # 去除开头的 ``` 及可选的 language（如 json, sql），以及结尾的 ```
-    text = re.sub(r'^```(?:[a-zA-Z0-9_]*)?\s*\n?', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'\n?```$', '', text)
+    
+    # 去除所有 ```sql ... ``` 代码块（处理多行和多个代码块）
+    # 匹配 ```sql 开始到 ``` 结束的内容
+    code_block_pattern = r'```(?:sql)?\s*([\s\S]*?)```'
+    matches = re.findall(code_block_pattern, text, re.IGNORECASE)
+    if matches:
+        # 取最后一个代码块的内容（通常 SQL 在最后一个代码块中）
+        text = matches[-1].strip()
+    else:
+        # 如果没有代码块，去除开头的 ``` 及可选的 language
+        text = re.sub(r'^```(?:[a-zA-Z0-9_]*)?\s*\n?', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'\n?```$', '', text)
+    
     return text.strip()
 
 

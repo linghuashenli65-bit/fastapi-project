@@ -2,7 +2,8 @@
  * 登录页面 JavaScript
  */
 
-const API_BASE = 'http://localhost:8000';
+// 从 config.js 导入 API_BASE，如果没有则使用默认值
+const API_BASE = typeof window.API_BASE !== 'undefined' ? window.API_BASE : 'http://localhost:8888';
 
 // 检查是否已登录
 function checkAuth() {

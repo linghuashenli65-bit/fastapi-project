@@ -19,7 +19,7 @@ def convert_decimal(obj):
 
 def build_chart(data: list, title: str, chart_type: str = "bar") -> dict:
     if not data:
-        return {"title": {"text": title}, "tooltip": {}}
+        return {"tooltip": {}}
 
     # 获取列名（假设第一列为 x 轴类别，第二列为数值）
     columns = list(data[0].keys())
@@ -32,9 +32,8 @@ def build_chart(data: list, title: str, chart_type: str = "bar") -> dict:
         except (ValueError, TypeError):
             y_series.append(0)
 
-    # 基础配置
+    # 基础配置（不设置 title，由前端显示标题）
     option = {
-        "title": {"text": title},
         "tooltip": {"trigger": "axis"},
     }
 

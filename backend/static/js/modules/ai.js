@@ -97,12 +97,13 @@ export async function render(container) {
         resultDiv.innerHTML = '<p style="color:#64748b;">执行中...</p>';
         try {
             const res = await post('/agent/sql', { query, model });
-            // 统一响应格式：res = { datas, pagination, messages }
+            // 统一响应格式：res = { status, messages, datas, pagination }
             const data = res.datas && res.datas[0] ? res.datas[0] : {};
             
-            // 检查后端返回的错误信息
-            if (res.messages && res.messages.length > 0) {
-                const errorMsg = res.messages.join('；');
+            // 检查后端返回的错误：status=0 表示失败
+            if (res.status === 0) {
+                const messages = res.messages || '未知错误';
+                const errorMsg = Array.isArray(messages) ? messages.join('；') : messages;
                 resultDiv.innerHTML = `
                     <div style="background:#fee2e2; padding:12px; border-radius:8px; color:#991b1b;">
                         <strong>❌ 后端错误</strong><br>
